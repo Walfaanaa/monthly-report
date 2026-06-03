@@ -4,7 +4,6 @@ import requests
 from io import BytesIO
 
 st.set_page_config(page_title="Member Report", layout="wide")
-
 st.title("Member Report")
 
 DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/monthly_report.xlsx"
@@ -21,7 +20,6 @@ def load_data():
     response.raise_for_status()
 
     df = pd.read_excel(BytesIO(response.content), engine="openpyxl")
-
     df.columns = df.columns.str.strip()
 
     df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
@@ -36,38 +34,36 @@ def load_data():
 df = load_data()
 
 # -------------------------
-# FILTER PERIOD DATA
-# -------------------------
-filtered_df = df[df["business_date"] >= pd.Timestamp("2026-05-25")]
-
-# -------------------------
-# MASTER TABLE (ALL IDs)
+# FULL MEMBER BASE (MASTER)
 # -------------------------
 master = pd.DataFrame({"id": MASTER_IDS})
 
-# attach filtered data (for display)
-display_df = master.merge(filtered_df, on="id", how="left")
-
-# attach FULL data (for ranking)
-rank_df = df.groupby("id", as_index=False)["total_payment"].sum()
-
-display_df = display_df.merge(rank_df, on="id", how="left", suffixes=("", "_full"))
-
 # -------------------------
-# CLEAN MISSING VALUES
+# LATEST DATA (FILTERED PERIOD ONLY FOR ACTIVITY VIEW)
 # -------------------------
-display_df["Name"] = display_df["Name"].fillna("NO PAYMENT")
-display_df["monthly_payment"] = display_df["monthly_payment"].fillna(0)
-display_df["total_payment"] = display_df["total_payment"].fillna(0)
-display_df["total_payment_full"] = display_df["total_payment_full"].fillna(0)
+period_df = df[df["business_date"] >= pd.Timestamp("2026-05-25")]
+
+# attach period activity
+display = master.merge(period_df, on="id", how="left")
 
 # -------------------------
-# CREATE RANK (BASED ON FULL PAYMENT)
+# IMPORTANT: KEEP REAL TOTAL (NOT ZEROED)
 # -------------------------
-display_df["rank"] = display_df["total_payment_full"].rank(
-    ascending=False,
-    method="min"
-).astype(int)
+total_df = df.groupby("id", as_index=False).agg({
+    "total_payment": "max",   # keep real value
+    "member_rank": "max"
+})
+
+display = display.merge(total_df, on="id", how="left")
+
+# -------------------------
+# CLEAN DISPLAY ONLY (NOT FINANCIAL VALUES)
+# -------------------------
+display["Name"] = display["Name"].fillna("NO PAYMENT")
+display["monthly_payment"] = display["monthly_payment"].fillna(0)
+
+# DO NOT TOUCH total_payment (IMPORTANT)
+display["total_payment"] = display["total_payment"].fillna(0)
 
 # -------------------------
 # FILTER UI
@@ -76,15 +72,16 @@ st.sidebar.header("Filters")
 
 selected_ids = st.sidebar.multiselect("Select ID", MASTER_IDS)
 
-filtered = display_df.copy()
+filtered = display.copy()
 
 if selected_ids:
     filtered = filtered[filtered["id"].isin(selected_ids)]
 
+
 # -------------------------
 # DISPLAY
 # -------------------------
-st.subheader("Member Report (Full Ranking Included)")
+st.subheader("Member Report (True Total Payment Maintained)")
 
 st.dataframe(
     filtered[
@@ -94,8 +91,7 @@ st.dataframe(
             "Name",
             "monthly_payment",
             "total_payment",
-            "total_payment_full",
-            "rank"
+            "member_rank"
         ]
     ],
     use_container_width=True,
@@ -103,21 +99,22 @@ st.dataframe(
 )
 
 # -------------------------
-# GRAND TOTAL (FILTERED PERIOD ONLY)
+# GRAND TOTAL (IMPORTANT FIX)
 # -------------------------
-st.subheader("Grand Total (Filtered Period Only)")
+st.subheader("Grand Total (True Capital Based)")
 
 col1, col2 = st.columns(2)
 
 col1.metric(
-    "Monthly Payment",
+    "Monthly Payment (Period)",
     f"{filtered['monthly_payment'].sum():,.2f}"
 )
 
 col2.metric(
-    "Total Payment",
+    "Total Payment (TRUE CAPITAL)",
     f"{filtered['total_payment'].sum():,.2f}"
 )
+
 
 # -------------------------
 # DOWNLOAD
