@@ -131,6 +131,6 @@ col1.metric(
 )
 
 col2.metric(
-    "Total Payment (Capital - Unchanged)",
+    "Total Payment (Grand still paid)",
     f"{display['total_payment'].sum():,.2f}"
 )
