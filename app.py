@@ -4,7 +4,7 @@ import requests
 from io import BytesIO
 
 # -------------------------
-# Page Setup
+# Page setup
 # -------------------------
 st.set_page_config(
     page_title="Monthly Member Report",
@@ -14,13 +14,13 @@ st.set_page_config(
 st.title("Monthly Member Report")
 
 # -------------------------
-# GitHub Excel Source
+# Data source
 # -------------------------
 DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/monthly_report.xlsx"
 
 
 # -------------------------
-# Load Data (NO CALCULATION)
+# Load data (NO CALCULATION)
 # -------------------------
 @st.cache_data
 def load_data():
@@ -29,16 +29,16 @@ def load_data():
 
     df = pd.read_excel(BytesIO(response.content), engine="openpyxl")
 
-    # Clean column names
+    # Clean columns
     df.columns = df.columns.str.strip()
 
-    # Convert date safely
+    # Convert date
     df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
 
     # Remove invalid rows only
     df = df.dropna(subset=["business_date", "id"])
 
-    # Remove summary / garbage rows
+    # Remove garbage rows
     df["id"] = df["id"].astype(str)
     df = df[~df["id"].str.contains("GRAND", na=False)]
     df = df[~df["id"].str.contains(r"\*", regex=True, na=False)]
@@ -54,39 +54,18 @@ if df.empty:
 
 
 # -------------------------
-# REQUIRED FILTER RULE
+# ONLY REQUIRED FILTER
 # -------------------------
 df = df[df["business_date"] >= pd.Timestamp("2026-05-25")]
 
 
-if df.empty:
-    st.warning("No records found after 2026-05-25.")
-    st.stop()
-
-
 # -------------------------
-# Month Filter (view only)
+# SHOW ALL DATA (NO MONTH FILTER)
 # -------------------------
-df["month"] = df["business_date"].dt.strftime("%Y-%m")
-
-months = sorted(df["month"].unique(), reverse=True)
-
-selected_month = st.sidebar.selectbox("Select Month", months)
-
-report = df[df["month"] == selected_month]
-
-if report.empty:
-    st.warning("No data for selected month.")
-    st.stop()
-
-
-# -------------------------
-# RAW DATA DISPLAY ONLY
-# -------------------------
-st.subheader(f"Raw Data View: {selected_month}")
+st.subheader("All Filtered Data (From 2026-05-25)")
 
 st.dataframe(
-    report[
+    df[
         [
             "business_date",
             "id",
@@ -102,13 +81,13 @@ st.dataframe(
 
 
 # -------------------------
-# DOWNLOAD RAW DATA
+# DOWNLOAD FULL FILTERED DATA
 # -------------------------
-csv = report.to_csv(index=False).encode("utf-8")
+csv = df.to_csv(index=False).encode("utf-8")
 
 st.download_button(
-    label="Download CSV",
+    label="Download Full Data",
     data=csv,
-    file_name=f"monthly_report_{selected_month}.csv",
+    file_name="filtered_report_from_2026-05-25.csv",
     mime="text/csv"
 )
