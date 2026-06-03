@@ -33,56 +33,70 @@ def load_data():
 
 df = load_data()
 
+
 # -------------------------
-# FULL CAPITAL (IMPORTANT FIX)
+# CAPITAL (UNCHANGED LOGIC)
 # -------------------------
 capital_df = df.groupby("id", as_index=False).agg({
-    "total_payment": "max",   # lifetime value
+    "total_payment": "max",
     "member_rank": "max"
 })
 
-# -------------------------
-# PERIOD DATA ONLY
-# -------------------------
-period_df = df[df["business_date"] >= pd.Timestamp("2026-05-25")]
-
-period_df = period_df[[
-    "id",
-    "business_date",
-    "monthly_payment"
-]]
 
 # -------------------------
 # MASTER TABLE
 # -------------------------
 master = pd.DataFrame({"id": MASTER_IDS})
-
-# merge capital FIRST (fixes KeyError)
 display = master.merge(capital_df, on="id", how="left")
 
-# merge period data SECOND
-display = display.merge(period_df, on="id", how="left")
 
 # -------------------------
-# CLEAN DISPLAY ONLY
-# -------------------------
-display["Name"] = display.get("Name", "NO PAYMENT")
-display["monthly_payment"] = display["monthly_payment"].fillna(0)
-
-display["total_payment"] = display["total_payment"].fillna(0)
-display["member_rank"] = display["member_rank"].fillna("-")
-
-# -------------------------
-# FILTER UI
+# SIDEBAR FILTER (ONLY ADDITION)
 # -------------------------
 st.sidebar.header("Filters")
 
+min_date = df["business_date"].min()
+max_date = df["business_date"].max()
+
+date_range = st.sidebar.date_input(
+    "Business Date Range",
+    [min_date, max_date]
+)
+
 selected_ids = st.sidebar.multiselect("Select ID", MASTER_IDS)
 
-filtered = display.copy()
 
+# -------------------------
+# APPLY DATE FILTER (ONLY FOR VIEW)
+# -------------------------
+period_df = df.copy()
+
+if len(date_range) == 2:
+    start_date, end_date = date_range
+
+    period_df = period_df[
+        (period_df["business_date"] >= pd.Timestamp(start_date)) &
+        (period_df["business_date"] <= pd.Timestamp(end_date))
+    ]
+
+
+period_df = period_df[["id", "business_date", "monthly_payment"]]
+
+
+# -------------------------
+# MERGE PERIOD DATA
+# -------------------------
+display = display.merge(period_df, on="id", how="left")
+
+display["monthly_payment"] = display["monthly_payment"].fillna(0)
+
+
+# -------------------------
+# FILTER IDS (optional)
+# -------------------------
 if selected_ids:
-    filtered = filtered[filtered["id"].isin(selected_ids)]
+    display = display[display["id"].isin(selected_ids)]
+
 
 # -------------------------
 # DISPLAY
@@ -90,7 +104,7 @@ if selected_ids:
 st.subheader("Member Report")
 
 st.dataframe(
-    filtered[
+    display[
         [
             "business_date",
             "id",
@@ -103,6 +117,7 @@ st.dataframe(
     hide_index=True
 )
 
+
 # -------------------------
 # GRAND TOTAL
 # -------------------------
@@ -111,11 +126,11 @@ st.subheader("Grand Total")
 col1, col2 = st.columns(2)
 
 col1.metric(
-    "Monthly Payment (Period)",
-    f"{filtered['monthly_payment'].sum():,.2f}"
+    "Monthly Payment (Filtered Period)",
+    f"{display['monthly_payment'].sum():,.2f}"
 )
 
 col2.metric(
-    "Total Payment (Capital)",
-    f"{filtered['total_payment'].sum():,.2f}"
+    "Total Payment (Capital - Unchanged)",
+    f"{display['total_payment'].sum():,.2f}"
 )
