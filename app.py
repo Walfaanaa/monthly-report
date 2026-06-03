@@ -17,6 +17,12 @@ DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/mont
 
 
 # -------------------------
+# MASTER ID LIST (IMPORTANT)
+# -------------------------
+MASTER_IDS = [str(i) for i in range(1001, 1027)]
+
+
+# -------------------------
 # Load data
 # -------------------------
 @st.cache_data
@@ -31,7 +37,7 @@ def load_data():
     df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
     df["id"] = df["id"].astype(str)
 
-    # remove only garbage rows
+    # remove garbage rows only
     df = df[~df["id"].str.contains("GRAND", na=False)]
     df = df[~df["id"].str.contains(r"\*", regex=True, na=False)]
 
@@ -42,19 +48,30 @@ df = load_data()
 
 
 # -------------------------
-# REQUIRED FILTER RULE
+# FILTER DATA BY DATE
 # -------------------------
-df = df[
-    (df["business_date"].isna()) |
-    (df["business_date"] >= pd.Timestamp("2026-05-25"))
-]
+df = df[df["business_date"] >= pd.Timestamp("2026-05-25")]
 
 
 # -------------------------
-# Create report month label
+# BUILD MASTER TABLE (LEFT JOIN LOGIC)
 # -------------------------
-df["report_month"] = df["business_date"].dt.strftime("%Y-%m")
-df["report_month"] = df["report_month"].fillna("NO PAYMENT")
+master_df = pd.DataFrame({"id": MASTER_IDS})
+
+merged = master_df.merge(df, on="id", how="left")
+
+
+# -------------------------
+# HANDLE MISSING DATA
+# -------------------------
+merged["business_date"] = merged["business_date"].fillna(pd.NaT)
+merged["report_month"] = merged["business_date"].dt.strftime("%Y-%m")
+merged["report_month"] = merged["report_month"].fillna("NO PAYMENT")
+
+merged["Name"] = merged["Name"].fillna("NO PAYMENT")
+merged["monthly_payment"] = merged["monthly_payment"].fillna(0)
+merged["total_payment"] = merged["total_payment"].fillna(0)
+merged["member_rank"] = merged["member_rank"].fillna("-")
 
 
 # -------------------------
@@ -64,15 +81,15 @@ st.sidebar.header("Filters")
 
 selected_ids = st.sidebar.multiselect(
     "Select ID",
-    sorted(df["id"].unique())
+    MASTER_IDS
 )
 
 selected_month = st.sidebar.selectbox(
     "Select Month",
-    sorted(df["report_month"].unique())
+    sorted(merged["report_month"].unique())
 )
 
-filtered = df.copy()
+filtered = merged.copy()
 
 if selected_ids:
     filtered = filtered[filtered["id"].isin(selected_ids)]
@@ -81,9 +98,9 @@ filtered = filtered[filtered["report_month"] == selected_month]
 
 
 # -------------------------
-# DISPLAY DATA
+# DISPLAY
 # -------------------------
-st.subheader("Member Data")
+st.subheader("All Members (Guaranteed Full ID Coverage)")
 
 st.dataframe(
     filtered[
@@ -115,7 +132,7 @@ col1.metric(
 )
 
 col2.metric(
-    "Total Total Payment",
+    "Total Payment",
     f"{filtered['total_payment'].sum():,.2f}"
 )
 
@@ -128,6 +145,6 @@ csv = filtered.to_csv(index=False).encode("utf-8")
 st.download_button(
     "Download Report",
     csv,
-    "filtered_report.csv",
+    "full_member_report.csv",
     "text/csv"
 )
