@@ -28,12 +28,10 @@ def load_data():
 
     df.columns = df.columns.str.strip()
 
-    # DO NOT DROP NULL DATES
     df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
-
     df["id"] = df["id"].astype(str)
 
-    # Remove only garbage rows
+    # remove only garbage rows
     df = df[~df["id"].str.contains("GRAND", na=False)]
     df = df[~df["id"].str.contains(r"\*", regex=True, na=False)]
 
@@ -42,17 +40,20 @@ def load_data():
 
 df = load_data()
 
+
 # -------------------------
-# Base filter
+# REQUIRED FILTER RULE
 # -------------------------
-df = df[df["business_date"].isna() | (df["business_date"] >= pd.Timestamp("2026-05-25"))]
+df = df[
+    (df["business_date"].isna()) |
+    (df["business_date"] >= pd.Timestamp("2026-05-25"))
+]
 
 
 # -------------------------
-# Create report month (IMPORTANT PART)
+# Create report month label
 # -------------------------
 df["report_month"] = df["business_date"].dt.strftime("%Y-%m")
-
 df["report_month"] = df["report_month"].fillna("NO PAYMENT")
 
 
@@ -71,7 +72,6 @@ selected_month = st.sidebar.selectbox(
     sorted(df["report_month"].unique())
 )
 
-
 filtered = df.copy()
 
 if selected_ids:
@@ -81,9 +81,9 @@ filtered = filtered[filtered["report_month"] == selected_month]
 
 
 # -------------------------
-# Display
+# DISPLAY DATA
 # -------------------------
-st.subheader("Member Data (Including Missing Payments)")
+st.subheader("Member Data")
 
 st.dataframe(
     filtered[
@@ -105,7 +105,7 @@ st.dataframe(
 # -------------------------
 # GRAND TOTAL
 # -------------------------
-st.subheader("Grand Total")
+st.subheader("Grand Total Summary")
 
 col1, col2 = st.columns(2)
 
@@ -115,7 +115,7 @@ col1.metric(
 )
 
 col2.metric(
-    "Total Payment",
+    "Total Total Payment",
     f"{filtered['total_payment'].sum():,.2f}"
 )
 
@@ -128,6 +128,6 @@ csv = filtered.to_csv(index=False).encode("utf-8")
 st.download_button(
     "Download Report",
     csv,
-    "report.csv",
+    "filtered_report.csv",
     "text/csv"
 )
