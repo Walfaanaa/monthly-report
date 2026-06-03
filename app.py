@@ -6,14 +6,18 @@ from io import BytesIO
 st.set_page_config(page_title="Member Report", layout="wide")
 
 # -------------------------
-# UI THEME (ONLY ADDITION)
+# UI THEME (UPDATED)
 # -------------------------
 st.markdown("""
 <style>
 
-/* Main app background (green → blue) */
+/* Full page background: top green → blue → bottom indigo */
 [data-testid="stAppViewContainer"] > .main {
-    background: linear-gradient(to right, #0f9d58, #4285f4);
+    background: linear-gradient(to bottom,
+        #0f9d58 0%,      /* green (top) */
+        #4285f4 50%,     /* blue (middle) */
+        #3f51b5 100%     /* indigo (bottom) */
+    );
 }
 
 /* Sidebar (filter area → violet) */
@@ -30,6 +34,17 @@ section[data-testid="stSidebar"] * {
 div[data-testid="stMetric"] {
     background-color: rgba(255,255,255,0.10);
     padding: 10px;
+    border-radius: 10px;
+}
+
+/* Optional: make title more visible */
+h1, h2, h3 {
+    color: white;
+}
+
+/* Table background improvement */
+div[data-testid="stDataFrame"] {
+    background-color: rgba(255,255,255,0.05);
     border-radius: 10px;
 }
 
