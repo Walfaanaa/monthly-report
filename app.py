@@ -28,11 +28,12 @@ def load_data():
 
     df.columns = df.columns.str.strip()
 
+    # DO NOT DROP NULL DATES
     df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
 
-    df = df.dropna(subset=["business_date", "id"])
-
     df["id"] = df["id"].astype(str)
+
+    # Remove only garbage rows
     df = df[~df["id"].str.contains("GRAND", na=False)]
     df = df[~df["id"].str.contains(r"\*", regex=True, na=False)]
 
@@ -42,55 +43,53 @@ def load_data():
 df = load_data()
 
 # -------------------------
-# Base filter (required rule)
+# Base filter
 # -------------------------
-df = df[df["business_date"] >= pd.Timestamp("2026-05-25")]
+df = df[df["business_date"].isna() | (df["business_date"] >= pd.Timestamp("2026-05-25"))]
 
 
 # -------------------------
-# Filters (USER CONTROL)
+# Create report month (IMPORTANT PART)
+# -------------------------
+df["report_month"] = df["business_date"].dt.strftime("%Y-%m")
+
+df["report_month"] = df["report_month"].fillna("NO PAYMENT")
+
+
+# -------------------------
+# Filters
 # -------------------------
 st.sidebar.header("Filters")
 
-# ID filter
-id_list = sorted(df["id"].unique())
-selected_ids = st.sidebar.multiselect("Select ID (optional)", id_list)
+selected_ids = st.sidebar.multiselect(
+    "Select ID",
+    sorted(df["id"].unique())
+)
 
-# Date filter
-min_date = df["business_date"].min()
-max_date = df["business_date"].max()
-
-date_range = st.sidebar.date_input(
-    "Select Business Date Range",
-    [min_date, max_date]
+selected_month = st.sidebar.selectbox(
+    "Select Month",
+    sorted(df["report_month"].unique())
 )
 
 
-# -------------------------
-# Apply filters
-# -------------------------
 filtered = df.copy()
 
 if selected_ids:
     filtered = filtered[filtered["id"].isin(selected_ids)]
 
-if len(date_range) == 2:
-    start_date, end_date = date_range
-    filtered = filtered[
-        (filtered["business_date"] >= pd.Timestamp(start_date)) &
-        (filtered["business_date"] <= pd.Timestamp(end_date))
-    ]
+filtered = filtered[filtered["report_month"] == selected_month]
 
 
 # -------------------------
-# Show data
+# Display
 # -------------------------
-st.subheader("Filtered Data")
+st.subheader("Member Data (Including Missing Payments)")
 
 st.dataframe(
     filtered[
         [
             "business_date",
+            "report_month",
             "id",
             "Name",
             "monthly_payment",
@@ -104,23 +103,21 @@ st.dataframe(
 
 
 # -------------------------
-# GRAND TOTAL SECTION
+# GRAND TOTAL
 # -------------------------
-st.subheader("Grand Total Summary")
+st.subheader("Grand Total")
 
 col1, col2 = st.columns(2)
 
-with col1:
-    st.metric(
-        "Total Monthly Payment (Grand Total)",
-        f"{filtered['monthly_payment'].sum():,.2f}"
-    )
+col1.metric(
+    "Total Monthly Payment",
+    f"{filtered['monthly_payment'].sum():,.2f}"
+)
 
-with col2:
-    st.metric(
-        "Total Payment (Grand Total)",
-        f"{filtered['total_payment'].sum():,.2f}"
-    )
+col2.metric(
+    "Total Payment",
+    f"{filtered['total_payment'].sum():,.2f}"
+)
 
 
 # -------------------------
@@ -129,8 +126,8 @@ with col2:
 csv = filtered.to_csv(index=False).encode("utf-8")
 
 st.download_button(
-    label="Download Filtered Data",
-    data=csv,
-    file_name="filtered_report.csv",
-    mime="text/csv"
+    "Download Report",
+    csv,
+    "report.csv",
+    "text/csv"
 )
