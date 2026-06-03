@@ -20,53 +20,38 @@ DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/mont
 
 
 # -------------------------
-# Load + Clean Data
+# Load Data (NO CALCULATION)
 # -------------------------
 @st.cache_data
 def load_data():
-    try:
-        response = requests.get(DATA_URL)
-        response.raise_for_status()
+    response = requests.get(DATA_URL)
+    response.raise_for_status()
 
-        df = pd.read_excel(BytesIO(response.content), engine="openpyxl")
+    df = pd.read_excel(BytesIO(response.content), engine="openpyxl")
 
-        # Clean column names
-        df.columns = df.columns.str.strip()
+    # Clean only essentials (no math changes)
+    df.columns = df.columns.str.strip()
 
-        # Convert date safely
-        df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
+    df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
 
-        # Remove invalid rows
-        df = df.dropna(subset=["business_date", "id"])
+    # Remove invalid dates only
+    df = df.dropna(subset=["business_date"])
 
-        # Remove summary / garbage rows
-        df = df[
-            ~df["id"].astype(str).str.contains("GRAND|\\*|***", regex=True, na=False)
-        ]
+    # Remove garbage rows only
+    df = df[~df["id"].astype(str).str.contains("GRAND|\\*|***", na=False)]
 
-        # Ensure numeric columns are safe
-        df["monthly_payment"] = pd.to_numeric(df["monthly_payment"], errors="coerce").fillna(0)
-        df["total_payment"] = pd.to_numeric(df["total_payment"], errors="coerce").fillna(0)
-
-        # Filter valid date range
-        df = df[df["business_date"] >= pd.Timestamp("2026-05-25")]
-
-        return df
-
-    except Exception as e:
-        st.error(f"Failed to load data: {e}")
-        st.stop()
+    return df
 
 
 df = load_data()
 
 if df.empty:
-    st.warning("No valid records found.")
+    st.warning("No data found.")
     st.stop()
 
 
 # -------------------------
-# Month Filter
+# Month Filter (view only)
 # -------------------------
 df["month"] = df["business_date"].dt.strftime("%Y-%m")
 
@@ -82,32 +67,12 @@ if report.empty:
 
 
 # -------------------------
-# Summary Metrics
+# Display raw report (NO metrics)
 # -------------------------
-st.subheader(f"Summary Report: {selected_month}")
-
-c1, c2, c3 = st.columns(3)
-
-c1.metric("Total Members", report["id"].nunique())
-
-c2.metric(
-    "Monthly Payment",
-    f"{report['monthly_payment'].sum():,.2f}"
-)
-
-c3.metric(
-    "Total Payment",
-    f"{report['total_payment'].sum():,.2f}"
-)
-
-
-# -------------------------
-# Member Table
-# -------------------------
-st.subheader("Member Details")
+st.subheader(f"Raw Data View: {selected_month}")
 
 st.dataframe(
-    report.sort_values("member_rank", na_position="last")[
+    report[
         [
             "business_date",
             "id",
@@ -123,27 +88,12 @@ st.dataframe(
 
 
 # -------------------------
-# Top 10 Members
-# -------------------------
-st.subheader("Top 10 Members by Total Payment")
-
-top_members = (
-    report.groupby("Name")["total_payment"]
-    .sum()
-    .sort_values(ascending=False)
-    .head(10)
-)
-
-st.bar_chart(top_members)
-
-
-# -------------------------
-# Download Report
+# Download (raw filtered data only)
 # -------------------------
 csv = report.to_csv(index=False).encode("utf-8")
 
 st.download_button(
-    label="Download Report (CSV)",
+    label="Download Data (CSV)",
     data=csv,
     file_name=f"monthly_report_{selected_month}.csv",
     mime="text/csv"
