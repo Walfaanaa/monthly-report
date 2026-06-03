@@ -34,36 +34,43 @@ def load_data():
 df = load_data()
 
 # -------------------------
-# FULL MEMBER BASE (MASTER)
+# FULL CAPITAL (IMPORTANT FIX)
 # -------------------------
-master = pd.DataFrame({"id": MASTER_IDS})
-
-# -------------------------
-# LATEST DATA (FILTERED PERIOD ONLY FOR ACTIVITY VIEW)
-# -------------------------
-period_df = df[df["business_date"] >= pd.Timestamp("2026-05-25")]
-
-# attach period activity
-display = master.merge(period_df, on="id", how="left")
-
-# -------------------------
-# IMPORTANT: KEEP REAL TOTAL (NOT ZEROED)
-# -------------------------
-total_df = df.groupby("id", as_index=False).agg({
-    "total_payment": "max",   # keep real value
+capital_df = df.groupby("id", as_index=False).agg({
+    "total_payment": "max",   # lifetime value
     "member_rank": "max"
 })
 
-display = display.merge(total_df, on="id", how="left")
+# -------------------------
+# PERIOD DATA ONLY
+# -------------------------
+period_df = df[df["business_date"] >= pd.Timestamp("2026-05-25")]
+
+period_df = period_df[[
+    "id",
+    "business_date",
+    "monthly_payment"
+]]
 
 # -------------------------
-# CLEAN DISPLAY ONLY (NOT FINANCIAL VALUES)
+# MASTER TABLE
 # -------------------------
-display["Name"] = display["Name"].fillna("NO PAYMENT")
+master = pd.DataFrame({"id": MASTER_IDS})
+
+# merge capital FIRST (fixes KeyError)
+display = master.merge(capital_df, on="id", how="left")
+
+# merge period data SECOND
+display = display.merge(period_df, on="id", how="left")
+
+# -------------------------
+# CLEAN DISPLAY ONLY
+# -------------------------
+display["Name"] = display.get("Name", "NO PAYMENT")
 display["monthly_payment"] = display["monthly_payment"].fillna(0)
 
-# DO NOT TOUCH total_payment (IMPORTANT)
 display["total_payment"] = display["total_payment"].fillna(0)
+display["member_rank"] = display["member_rank"].fillna("-")
 
 # -------------------------
 # FILTER UI
@@ -77,18 +84,16 @@ filtered = display.copy()
 if selected_ids:
     filtered = filtered[filtered["id"].isin(selected_ids)]
 
-
 # -------------------------
 # DISPLAY
 # -------------------------
-st.subheader("Member Report (True Total Payment Maintained)")
+st.subheader("Member Report")
 
 st.dataframe(
     filtered[
         [
             "business_date",
             "id",
-            "Name",
             "monthly_payment",
             "total_payment",
             "member_rank"
@@ -99,9 +104,9 @@ st.dataframe(
 )
 
 # -------------------------
-# GRAND TOTAL (IMPORTANT FIX)
+# GRAND TOTAL
 # -------------------------
-st.subheader("Grand Total (True Capital Based)")
+st.subheader("Grand Total")
 
 col1, col2 = st.columns(2)
 
@@ -111,19 +116,6 @@ col1.metric(
 )
 
 col2.metric(
-    "Total Payment (TRUE CAPITAL)",
+    "Total Payment (Capital)",
     f"{filtered['total_payment'].sum():,.2f}"
-)
-
-
-# -------------------------
-# DOWNLOAD
-# -------------------------
-csv = filtered.to_csv(index=False).encode("utf-8")
-
-st.download_button(
-    "Download Report",
-    csv,
-    "member_report.csv",
-    "text/csv"
 )
