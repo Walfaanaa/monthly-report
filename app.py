@@ -4,12 +4,43 @@ import requests
 from io import BytesIO
 
 st.set_page_config(page_title="Member Report", layout="wide")
+
+# -------------------------
+# UI THEME (ONLY ADDITION)
+# -------------------------
+st.markdown("""
+<style>
+
+/* Main app background (green → blue) */
+[data-testid="stAppViewContainer"] > .main {
+    background: linear-gradient(to right, #0f9d58, #4285f4);
+}
+
+/* Sidebar (filter area → violet) */
+section[data-testid="stSidebar"] {
+    background-color: #6a0dad;
+}
+
+/* Sidebar text color */
+section[data-testid="stSidebar"] * {
+    color: white;
+}
+
+/* Metric cards styling */
+div[data-testid="stMetric"] {
+    background-color: rgba(255,255,255,0.10);
+    padding: 10px;
+    border-radius: 10px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 st.title("Member Report")
 
 DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/monthly_report.xlsx"
 
 MASTER_IDS = [str(i) for i in range(1001, 1027)]
-
 
 # -------------------------
 # LOAD DATA
@@ -33,7 +64,6 @@ def load_data():
 
 df = load_data()
 
-
 # -------------------------
 # CAPITAL (UNCHANGED LOGIC)
 # -------------------------
@@ -42,16 +72,14 @@ capital_df = df.groupby("id", as_index=False).agg({
     "member_rank": "max"
 })
 
-
 # -------------------------
 # MASTER TABLE
 # -------------------------
 master = pd.DataFrame({"id": MASTER_IDS})
 display = master.merge(capital_df, on="id", how="left")
 
-
 # -------------------------
-# SIDEBAR FILTER (ONLY ADDITION)
+# SIDEBAR FILTER
 # -------------------------
 st.sidebar.header("Filters")
 
@@ -65,9 +93,8 @@ date_range = st.sidebar.date_input(
 
 selected_ids = st.sidebar.multiselect("Select ID", MASTER_IDS)
 
-
 # -------------------------
-# APPLY DATE FILTER (ONLY FOR VIEW)
+# APPLY DATE FILTER
 # -------------------------
 period_df = df.copy()
 
@@ -79,24 +106,19 @@ if len(date_range) == 2:
         (period_df["business_date"] <= pd.Timestamp(end_date))
     ]
 
-
 period_df = period_df[["id", "business_date", "monthly_payment"]]
-
 
 # -------------------------
 # MERGE PERIOD DATA
 # -------------------------
 display = display.merge(period_df, on="id", how="left")
-
 display["monthly_payment"] = display["monthly_payment"].fillna(0)
 
-
 # -------------------------
-# FILTER IDS (optional)
+# FILTER IDS
 # -------------------------
 if selected_ids:
     display = display[display["id"].isin(selected_ids)]
-
 
 # -------------------------
 # DISPLAY
@@ -117,7 +139,6 @@ st.dataframe(
     hide_index=True
 )
 
-
 # -------------------------
 # GRAND TOTAL
 # -------------------------
@@ -131,6 +152,6 @@ col1.metric(
 )
 
 col2.metric(
-    "Total Payment (Grand total money still collected)",
+    "Total Payment (Grand still paid)",
     f"{display['total_payment'].sum():,.2f}"
 )
