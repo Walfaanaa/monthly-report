@@ -17,13 +17,13 @@ DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/mont
 
 
 # -------------------------
-# MASTER ID LIST (IMPORTANT)
+# MASTER IDS (ALL MEMBERS)
 # -------------------------
 MASTER_IDS = [str(i) for i in range(1001, 1027)]
 
 
 # -------------------------
-# Load data
+# LOAD DATA
 # -------------------------
 @st.cache_data
 def load_data():
@@ -37,7 +37,7 @@ def load_data():
     df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
     df["id"] = df["id"].astype(str)
 
-    # remove garbage rows only
+    # remove only garbage rows
     df = df[~df["id"].str.contains("GRAND", na=False)]
     df = df[~df["id"].str.contains(r"\*", regex=True, na=False)]
 
@@ -48,48 +48,48 @@ df = load_data()
 
 
 # -------------------------
-# FILTER DATA BY DATE
+# APPLY DATE FILTER ONLY ON REAL DATA
 # -------------------------
 df = df[df["business_date"] >= pd.Timestamp("2026-05-25")]
 
 
 # -------------------------
-# BUILD MASTER TABLE (LEFT JOIN LOGIC)
+# BUILD MASTER TABLE (FULL COVERAGE)
 # -------------------------
 master_df = pd.DataFrame({"id": MASTER_IDS})
 
-merged = master_df.merge(df, on="id", how="left")
+full_df = master_df.merge(df, on="id", how="left")
 
 
 # -------------------------
-# HANDLE MISSING DATA
+# CLEAN MISSING VALUES
 # -------------------------
-merged["business_date"] = merged["business_date"].fillna(pd.NaT)
-merged["report_month"] = merged["business_date"].dt.strftime("%Y-%m")
-merged["report_month"] = merged["report_month"].fillna("NO PAYMENT")
+full_df["business_date"] = full_df["business_date"].fillna(pd.NaT)
 
-merged["Name"] = merged["Name"].fillna("NO PAYMENT")
-merged["monthly_payment"] = merged["monthly_payment"].fillna(0)
-merged["total_payment"] = merged["total_payment"].fillna(0)
-merged["member_rank"] = merged["member_rank"].fillna("-")
+full_df["report_month"] = full_df["business_date"].dt.strftime("%Y-%m")
+full_df["report_month"] = full_df["report_month"].fillna("NO PAYMENT")
+
+full_df["Name"] = full_df["Name"].fillna("NO PAYMENT")
+
+# IMPORTANT: missing payments become ZERO
+full_df["monthly_payment"] = full_df["monthly_payment"].fillna(0)
+full_df["total_payment"] = full_df["total_payment"].fillna(0)
+full_df["member_rank"] = full_df["member_rank"].fillna("-")
 
 
 # -------------------------
-# Filters
+# FILTER UI
 # -------------------------
 st.sidebar.header("Filters")
 
-selected_ids = st.sidebar.multiselect(
-    "Select ID",
-    MASTER_IDS
-)
+selected_ids = st.sidebar.multiselect("Select ID", MASTER_IDS)
 
 selected_month = st.sidebar.selectbox(
     "Select Month",
-    sorted(merged["report_month"].unique())
+    sorted(full_df["report_month"].unique())
 )
 
-filtered = merged.copy()
+filtered = full_df.copy()
 
 if selected_ids:
     filtered = filtered[filtered["id"].isin(selected_ids)]
@@ -98,9 +98,9 @@ filtered = filtered[filtered["report_month"] == selected_month]
 
 
 # -------------------------
-# DISPLAY
+# DISPLAY TABLE
 # -------------------------
-st.subheader("All Members (Guaranteed Full ID Coverage)")
+st.subheader("Full Member Report (Including Zero Activity Members)")
 
 st.dataframe(
     filtered[
@@ -120,9 +120,9 @@ st.dataframe(
 
 
 # -------------------------
-# GRAND TOTAL
+# GRAND TOTAL (IMPORTANT FIX)
 # -------------------------
-st.subheader("Grand Total Summary")
+st.subheader("Grand Total (Includes All Members)")
 
 col1, col2 = st.columns(2)
 
@@ -145,6 +145,6 @@ csv = filtered.to_csv(index=False).encode("utf-8")
 st.download_button(
     "Download Report",
     csv,
-    "full_member_report.csv",
+    "full_report.csv",
     "text/csv"
 )
