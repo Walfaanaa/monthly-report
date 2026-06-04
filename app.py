@@ -121,7 +121,7 @@ def load_data():
     df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
     df["id"] = df["id"].astype(str)
 
-    df = df[~df["id"].str.contains("GRAND", na=False)]
+    df = df[~df["id"].str.contains("GRAND", na=True)]
     df = df[~df["id"].str.contains(r"\*", regex=True, na=False)]
 
     return df
