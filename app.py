@@ -217,10 +217,10 @@ with col4:
     st.metric("Grand Collected Money Still", f"{grand_collected:,.2f}")
 
 with col5:
-    st.metric("Paid Members This Month", paid_count)
+    st.metric("No. of Paid Members", paid_count)
 
 with col6:
-    st.metric("Unpaid Members This Month", unpaid_count)
+    st.metric("No. of Unpaid members", unpaid_count)
 
 # =====================================
 # UNPAID LIST
