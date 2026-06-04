@@ -298,4 +298,4 @@ with col2:
         "Grand Total Payment",
         f"{display['total_payment'].sum():,.2f}"
     )
-```
+
