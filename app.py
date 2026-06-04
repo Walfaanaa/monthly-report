@@ -10,10 +10,18 @@ st.set_page_config(page_title="Member Report", layout="wide")
 # =====================================
 st.markdown("""
 <style>
-[data-testid="stAppViewContainer"] { background-color: white; }
 
-section[data-testid="stSidebar"] { background-color: #6a0dad; }
-section[data-testid="stSidebar"] * { color: white !important; }
+[data-testid="stAppViewContainer"] {
+    background-color: white;
+}
+
+section[data-testid="stSidebar"] {
+    background-color: #6a0dad;
+}
+
+section[data-testid="stSidebar"] * {
+    color: white !important;
+}
 
 [data-testid="stDateInput"] input {
     color: black !important;
@@ -21,10 +29,18 @@ section[data-testid="stSidebar"] * { color: white !important; }
     font-weight: bold !important;
 }
 
-[data-testid="stDateInput"] { background-color: white !important; border-radius: 8px; }
-[data-testid="stDateInput"] svg { color: black !important; }
+[data-testid="stDateInput"] {
+    background-color: white !important;
+    border-radius: 8px;
+}
 
-.stMultiSelect div { color: black !important; }
+[data-testid="stDateInput"] svg {
+    color: black !important;
+}
+
+.stMultiSelect div {
+    color: black !important;
+}
 
 .header-box {
     background-color: #d32f2f;
@@ -58,10 +74,18 @@ div[data-testid="stMetric"] div {
     color: white !important;
 }
 
-[data-testid="stDataFrame"] { background-color: white; border-radius: 10px; }
-[data-testid="stDataFrame"] * { color: black !important; }
+[data-testid="stDataFrame"] {
+    background-color: white;
+    border-radius: 10px;
+}
 
-h1, h2, h3 { color: white; }
+[data-testid="stDataFrame"] * {
+    color: black !important;
+}
+
+h1, h2, h3 {
+    color: white;
+}
 
 </style>
 """, unsafe_allow_html=True)
@@ -79,7 +103,9 @@ st.markdown("""
 # DATA SOURCE
 # =====================================
 DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/monthly_report.xlsx"
+
 MASTER_IDS = [str(i) for i in range(1001, 1027)]
+MONTHLY_CONTRIBUTION = 1000
 
 # =====================================
 # LOAD DATA
@@ -95,6 +121,7 @@ def load_data():
     df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
     df["id"] = df["id"].astype(str)
 
+    # clean invalid rows
     df = df[~df["id"].str.contains("GRAND", na=False)]
     df = df[~df["id"].str.contains(r"\*", regex=True, na=False)]
 
@@ -121,7 +148,7 @@ selected_ids = st.sidebar.multiselect(
 )
 
 # =====================================
-# FILTER DATA FIRST (IMPORTANT FIX)
+# APPLY DATE FILTER
 # =====================================
 filtered_df = df.copy()
 
@@ -132,36 +159,65 @@ if len(date_range) == 2:
         (filtered_df["business_date"] <= pd.Timestamp(end_date))
     ]
 
-# =====================================
-# AGGREGATE PER MEMBER (FIXED LOGIC)
-# =====================================
-member_period = filtered_df.groupby("id", as_index=False).agg(
-    monthly_payment=("monthly_payment", "sum"),
-    last_business_date=("business_date", "max")
+# number of months in range
+start_date, end_date = date_range
+num_months = (
+    (pd.to_datetime(end_date).to_period("M") -
+     pd.to_datetime(start_date).to_period("M")).n + 1
 )
 
+# =====================================
+# MEMBER PERIOD PAYMENT
+# =====================================
+member_period = filtered_df.groupby("id", as_index=False).agg(
+    monthly_payment=("monthly_payment", "sum")
+)
+
+# =====================================
+# CAPITAL SUMMARY (lifetime max)
+# =====================================
 capital_df = df.groupby("id", as_index=False).agg(
     total_payment=("total_payment", "max"),
     member_rank=("member_rank", "max")
 )
 
+# =====================================
+# MASTER MERGE
+# =====================================
 master = pd.DataFrame({"id": MASTER_IDS})
 
 display = master.merge(capital_df, on="id", how="left")
 display = display.merge(member_period, on="id", how="left")
 
-display[["monthly_payment", "total_payment"]] = display[
-    ["monthly_payment", "total_payment"]
-].fillna(0)
+display["monthly_payment"] = display["monthly_payment"].fillna(0)
+display["total_payment"] = display["total_payment"].fillna(0)
 
 # =====================================
-# FILTER MEMBERS
+# PAY / NON-PAY LOGIC
+# =====================================
+display["expected_payment"] = MONTHLY_CONTRIBUTION * num_months
+display["unpaid_amount"] = display["expected_payment"] - display["monthly_payment"]
+
+paid_members = display.loc[display["monthly_payment"] > 0, "id"]
+non_paid_members = display.loc[display["monthly_payment"] == 0, "id"]
+
+# totals
+total_members = len(MASTER_IDS)
+paid_count = len(paid_members)
+unpaid_count = len(non_paid_members)
+
+collected_amount = display["monthly_payment"].sum()
+expected_amount = total_members * MONTHLY_CONTRIBUTION * num_months
+unpaid_amount_total = expected_amount - collected_amount
+
+# =====================================
+# MEMBER FILTER
 # =====================================
 if selected_ids:
     display = display[display["id"].isin(selected_ids)]
 
 # =====================================
-# REPORT
+# REPORT TABLE
 # =====================================
 st.markdown("""
 <div class="report-box">
@@ -171,7 +227,14 @@ st.markdown("""
 
 st.dataframe(
     display[
-        ["id", "monthly_payment", "total_payment", "member_rank", "last_business_date"]
+        [
+            "id",
+            "monthly_payment",
+            "expected_payment",
+            "unpaid_amount",
+            "total_payment",
+            "member_rank"
+        ]
     ],
     use_container_width=True,
     hide_index=True
@@ -189,10 +252,34 @@ st.markdown("""
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("Monthly Payment", f"{display['monthly_payment'].sum():,.2f}")
+    st.metric("Collected Amount", f"{collected_amount:,.2f}")
 
 with col2:
-    st.metric("Total Payment", f"{display['total_payment'].sum():,.2f}")
+    st.metric("Expected Amount", f"{expected_amount:,.2f}")
 
 with col3:
-    st.metric("Members", len(display))
+    st.metric("Unpaid Amount", f"{unpaid_amount_total:,.2f}")
+
+col4, col5, col6 = st.columns(3)
+
+with col4:
+    st.metric("Total Members", total_members)
+
+with col5:
+    st.metric("Paid Members", paid_count)
+
+with col6:
+    st.metric("Unpaid Members", unpaid_count)
+
+# =====================================
+# UNPAID LIST
+# =====================================
+st.markdown("""
+<div class="report-box">
+    <h3>Members Who Did Not Pay</h3>
+</div>
+""", unsafe_allow_html=True)
+
+unpaid_df = pd.DataFrame({"Member ID": sorted(non_paid_members)})
+
+st.dataframe(unpaid_df, use_container_width=True, hide_index=True)
