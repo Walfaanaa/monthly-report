@@ -6,7 +6,7 @@ from io import BytesIO
 st.set_page_config(page_title="Member Report", layout="wide")
 
 # =====================================
-# CUSTOM STYLE
+# STYLE
 # =====================================
 st.markdown("""
 <style>
@@ -121,7 +121,6 @@ def load_data():
     df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
     df["id"] = df["id"].astype(str)
 
-    # clean invalid rows
     df = df[~df["id"].str.contains("GRAND", na=False)]
     df = df[~df["id"].str.contains(r"\*", regex=True, na=False)]
 
@@ -148,7 +147,7 @@ selected_ids = st.sidebar.multiselect(
 )
 
 # =====================================
-# APPLY DATE FILTER
+# FILTER DATA
 # =====================================
 filtered_df = df.copy()
 
@@ -159,30 +158,20 @@ if len(date_range) == 2:
         (filtered_df["business_date"] <= pd.Timestamp(end_date))
     ]
 
-# number of months in range
-start_date, end_date = date_range
-num_months = (
-    (pd.to_datetime(end_date).to_period("M") -
-     pd.to_datetime(start_date).to_period("M")).n + 1
-)
-
 # =====================================
-# MEMBER PERIOD PAYMENT
+# MEMBER PAYMENT IN PERIOD
 # =====================================
 member_period = filtered_df.groupby("id", as_index=False).agg(
     monthly_payment=("monthly_payment", "sum")
 )
 
-# =====================================
-# CAPITAL SUMMARY (lifetime max)
-# =====================================
 capital_df = df.groupby("id", as_index=False).agg(
     total_payment=("total_payment", "max"),
     member_rank=("member_rank", "max")
 )
 
 # =====================================
-# MASTER MERGE
+# MASTER TABLE
 # =====================================
 master = pd.DataFrame({"id": MASTER_IDS})
 
@@ -193,25 +182,27 @@ display["monthly_payment"] = display["monthly_payment"].fillna(0)
 display["total_payment"] = display["total_payment"].fillna(0)
 
 # =====================================
-# PAY / NON-PAY LOGIC
+# PAYMENT LOGIC (FIXED AS YOU REQUESTED)
 # =====================================
-display["expected_payment"] = MONTHLY_CONTRIBUTION * num_months
-display["unpaid_amount"] = display["expected_payment"] - display["monthly_payment"]
+paid_mask = display["monthly_payment"] > 0
 
-paid_members = display.loc[display["monthly_payment"] > 0, "id"]
-non_paid_members = display.loc[display["monthly_payment"] == 0, "id"]
+paid_members = display.loc[paid_mask, "id"]
+non_paid_members = display.loc[~paid_mask, "id"]
 
-# totals
-total_members = len(MASTER_IDS)
 paid_count = len(paid_members)
 unpaid_count = len(non_paid_members)
 
+total_members = len(MASTER_IDS)
+
+# Expected = flat per member (NO months)
+expected_amount = total_members * MONTHLY_CONTRIBUTION
 collected_amount = display["monthly_payment"].sum()
-expected_amount = total_members * MONTHLY_CONTRIBUTION * num_months
-unpaid_amount_total = expected_amount - collected_amount
+
+# 🔥 KEY FIX: ONLY non-paying members × 1000
+unpaid_amount_total = len(non_paid_members) * MONTHLY_CONTRIBUTION
 
 # =====================================
-# MEMBER FILTER
+# FILTER SELECTION
 # =====================================
 if selected_ids:
     display = display[display["id"].isin(selected_ids)]
@@ -227,14 +218,7 @@ st.markdown("""
 
 st.dataframe(
     display[
-        [
-            "id",
-            "monthly_payment",
-            "expected_payment",
-            "unpaid_amount",
-            "total_payment",
-            "member_rank"
-        ]
+        ["id", "monthly_payment", "total_payment", "member_rank"]
     ],
     use_container_width=True,
     hide_index=True
@@ -280,6 +264,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-unpaid_df = pd.DataFrame({"Member ID": sorted(non_paid_members)})
+unpaid_df = pd.DataFrame({
+    "Member ID": sorted(non_paid_members)
+})
 
 st.dataframe(unpaid_df, use_container_width=True, hide_index=True)
