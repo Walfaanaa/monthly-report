@@ -182,7 +182,7 @@ display["monthly_payment"] = display["monthly_payment"].fillna(0)
 display["total_payment"] = display["total_payment"].fillna(0)
 
 # =====================================
-# PAYMENT LOGIC (FIXED AS YOU REQUESTED)
+# PAYMENT LOGIC
 # =====================================
 paid_mask = display["monthly_payment"] > 0
 
@@ -194,12 +194,13 @@ unpaid_count = len(non_paid_members)
 
 total_members = len(MASTER_IDS)
 
-# Expected = flat per member (NO months)
 expected_amount = total_members * MONTHLY_CONTRIBUTION
 collected_amount = display["monthly_payment"].sum()
 
-# 🔥 KEY FIX: ONLY non-paying members × 1000
 unpaid_amount_total = len(non_paid_members) * MONTHLY_CONTRIBUTION
+
+# 🟢 GRAND TOTAL COLLECTED (NEW)
+grand_collected = display["total_payment"].sum()
 
 # =====================================
 # FILTER SELECTION
@@ -247,7 +248,7 @@ with col3:
 col4, col5, col6 = st.columns(3)
 
 with col4:
-    st.metric("Total Members", total_members)
+    st.metric("Grand Collected", f"{grand_collected:,.2f}")
 
 with col5:
     st.metric("Paid Members", paid_count)
