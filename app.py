@@ -5,9 +5,6 @@ from io import BytesIO
 
 st.set_page_config(page_title="Member Report", layout="wide")
 
-# =====================================
-# STYLE
-# =====================================
 st.markdown("""
 <style>
 
@@ -90,26 +87,17 @@ h1, h2, h3 {
 </style>
 """, unsafe_allow_html=True)
 
-# =====================================
-# TITLE
-# =====================================
 st.markdown("""
 <div class="header-box">
     <h1>Member Report Dashboard</h1>
 </div>
 """, unsafe_allow_html=True)
 
-# =====================================
-# DATA SOURCE
-# =====================================
 DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/monthly_report.xlsx"
 
 MASTER_IDS = [str(i) for i in range(1001, 1027)]
 MONTHLY_CONTRIBUTION = 1000
 
-# =====================================
-# LOAD DATA
-# =====================================
 @st.cache_data
 def load_data():
     response = requests.get(DATA_URL)
@@ -128,9 +116,6 @@ def load_data():
 
 df = load_data()
 
-# =====================================
-# SIDEBAR FILTERS
-# =====================================
 st.sidebar.header("Filters")
 
 min_date = df["business_date"].min()
@@ -146,9 +131,6 @@ selected_ids = st.sidebar.multiselect(
     MASTER_IDS
 )
 
-# =====================================
-# FILTER DATA
-# =====================================
 filtered_df = df.copy()
 
 if len(date_range) == 2:
@@ -158,9 +140,7 @@ if len(date_range) == 2:
         (filtered_df["business_date"] <= pd.Timestamp(end_date))
     ]
 
-# =====================================
-# MEMBER PAYMENT IN PERIOD
-# =====================================
+
 member_period = filtered_df.groupby("id", as_index=False).agg(
     monthly_payment=("monthly_payment", "sum")
 )
@@ -170,9 +150,6 @@ capital_df = df.groupby("id", as_index=False).agg(
     member_rank=("member_rank", "max")
 )
 
-# =====================================
-# MASTER TABLE
-# =====================================
 master = pd.DataFrame({"id": MASTER_IDS})
 
 display = master.merge(capital_df, on="id", how="left")
@@ -181,9 +158,7 @@ display = display.merge(member_period, on="id", how="left")
 display["monthly_payment"] = display["monthly_payment"].fillna(0)
 display["total_payment"] = display["total_payment"].fillna(0)
 
-# =====================================
-# PAYMENT LOGIC
-# =====================================
+
 paid_mask = display["monthly_payment"] > 0
 
 paid_members = display.loc[paid_mask, "id"]
@@ -202,15 +177,9 @@ unpaid_amount_total = len(non_paid_members) * MONTHLY_CONTRIBUTION
 # 🟢 GRAND TOTAL COLLECTED (NEW)
 grand_collected = display["total_payment"].sum()
 
-# =====================================
-# FILTER SELECTION
-# =====================================
 if selected_ids:
     display = display[display["id"].isin(selected_ids)]
 
-# =====================================
-# REPORT TABLE
-# =====================================
 st.markdown("""
 <div class="report-box">
     <h3>Member Report</h3>
@@ -225,9 +194,6 @@ st.dataframe(
     hide_index=True
 )
 
-# =====================================
-# SUMMARY
-# =====================================
 st.markdown("""
 <div class="summary-box">
     <h3>Summary</h3>
@@ -237,24 +203,24 @@ st.markdown("""
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("Collected Amount", f"{collected_amount:,.2f}")
+    st.metric("Collected Amount This Month", f"{collected_amount:,.2f}")
 
 with col2:
-    st.metric("Expected Amount", f"{expected_amount:,.2f}")
+    st.metric("Expected Amount This Month", f"{expected_amount:,.2f}")
 
 with col3:
-    st.metric("Unpaid Amount", f"{unpaid_amount_total:,.2f}")
+    st.metric("Unpaid Amount This Month", f"{unpaid_amount_total:,.2f}")
 
 col4, col5, col6 = st.columns(3)
 
 with col4:
-    st.metric("Grand Collected", f"{grand_collected:,.2f}")
+    st.metric("Grand Collected Money Still", f"{grand_collected:,.2f}")
 
 with col5:
-    st.metric("Paid Members", paid_count)
+    st.metric("Paid Members This Month", paid_count)
 
 with col6:
-    st.metric("Unpaid Members", unpaid_count)
+    st.metric("Unpaid Members This Month", unpaid_count)
 
 # =====================================
 # UNPAID LIST
