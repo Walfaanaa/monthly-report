@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 import pandas as pd
 import requests
@@ -8,15 +9,15 @@ st.set_page_config(
     layout="wide"
 )
 
-# =========================
-# CUSTOM THEME
-# =========================
+# =====================================
+# CUSTOM STYLE
+# =====================================
 st.markdown("""
 <style>
 
 /* Main page */
 [data-testid="stAppViewContainer"] {
-    background-color: #ffffff;
+    background-color: white;
 }
 
 /* Sidebar */
@@ -28,6 +29,27 @@ section[data-testid="stSidebar"] * {
     color: white !important;
 }
 
+/* Force Date Input Text Black */
+[data-testid="stDateInput"] input {
+    color: black !important;
+    -webkit-text-fill-color: black !important;
+    font-weight: bold !important;
+}
+
+[data-testid="stDateInput"] {
+    background-color: white !important;
+    border-radius: 8px;
+}
+
+[data-testid="stDateInput"] svg {
+    color: black !important;
+}
+
+/* Multiselect */
+.stMultiSelect div {
+    color: black !important;
+}
+
 /* Header */
 .header-box {
     background-color: #d32f2f;
@@ -36,7 +58,7 @@ section[data-testid="stSidebar"] * {
     margin-bottom: 15px;
 }
 
-/* Report Section */
+/* Report Header */
 .report-box {
     background-color: #1976d2;
     padding: 10px;
@@ -44,7 +66,7 @@ section[data-testid="stSidebar"] * {
     margin-bottom: 10px;
 }
 
-/* Summary Section */
+/* Summary Header */
 .summary-box {
     background-color: #2e7d32;
     padding: 10px;
@@ -52,38 +74,27 @@ section[data-testid="stSidebar"] * {
     margin-top: 15px;
 }
 
-/* Metric cards */
+/* Metric Cards */
 div[data-testid="stMetric"] {
     background-color: #2e7d32;
     padding: 15px;
     border-radius: 10px;
 }
 
-/* Metric text */
+/* Metric Text */
 div[data-testid="stMetric"] label,
 div[data-testid="stMetric"] div {
     color: white !important;
 }
 
-/* Dataframe */
+/* DataFrame */
 [data-testid="stDataFrame"] {
     background-color: white;
     border-radius: 10px;
 }
 
-/* Table text black */
+/* DataFrame Text */
 [data-testid="stDataFrame"] * {
-    color: black !important;
-}
-
-/* Date input values black */
-input {
-    color: black !important;
-}
-
-/* Select box values black */
-.stSelectbox div,
-.stMultiSelect div {
     color: black !important;
 }
 
@@ -92,7 +103,7 @@ h1, h2, h3 {
     color: white;
 }
 
-/* Hide charts */
+/* Hide charts if any */
 [data-testid="stPlotlyChart"],
 [data-testid="stVegaLiteChart"] {
     display: none;
@@ -101,27 +112,28 @@ h1, h2, h3 {
 </style>
 """, unsafe_allow_html=True)
 
-# =========================
+# =====================================
 # TITLE
-# =========================
+# =====================================
 st.markdown("""
 <div class="header-box">
     <h1>Member Report Dashboard</h1>
 </div>
 """, unsafe_allow_html=True)
 
-# =========================
+# =====================================
 # DATA SOURCE
-# =========================
+# =====================================
 DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/monthly_report.xlsx"
 
 MASTER_IDS = [str(i) for i in range(1001, 1027)]
 
-# =========================
+# =====================================
 # LOAD DATA
-# =========================
+# =====================================
 @st.cache_data
 def load_data():
+
     response = requests.get(DATA_URL)
     response.raise_for_status()
 
@@ -158,9 +170,9 @@ def load_data():
 
 df = load_data()
 
-# =========================
+# =====================================
 # CAPITAL TABLE
-# =========================
+# =====================================
 capital_df = df.groupby(
     "id",
     as_index=False
@@ -169,9 +181,9 @@ capital_df = df.groupby(
     "member_rank": "max"
 })
 
-# =========================
-# MASTER TABLE
-# =========================
+# =====================================
+# MASTER LIST
+# =====================================
 master = pd.DataFrame({
     "id": MASTER_IDS
 })
@@ -182,9 +194,9 @@ display = master.merge(
     how="left"
 )
 
-# =========================
-# FILTERS
-# =========================
+# =====================================
+# SIDEBAR FILTERS
+# =====================================
 st.sidebar.header("Filters")
 
 min_date = df["business_date"].min()
@@ -192,7 +204,7 @@ max_date = df["business_date"].max()
 
 date_range = st.sidebar.date_input(
     "Business Date Range",
-    [min_date, max_date]
+    value=[min_date, max_date]
 )
 
 selected_ids = st.sidebar.multiselect(
@@ -200,12 +212,13 @@ selected_ids = st.sidebar.multiselect(
     MASTER_IDS
 )
 
-# =========================
-# DATE FILTER
-# =========================
+# =====================================
+# APPLY DATE FILTER
+# =====================================
 period_df = df.copy()
 
 if len(date_range) == 2:
+
     start_date, end_date = date_range
 
     period_df = period_df[
@@ -222,40 +235,34 @@ period_df = period_df[
     ]
 ]
 
-# =========================
-# MERGE
-# =========================
+# =====================================
+# MERGE DATA
+# =====================================
 display = display.merge(
     period_df,
     on="id",
     how="left"
 )
 
-display["monthly_payment"] = (
-    display["monthly_payment"]
-    .fillna(0)
-)
+display["monthly_payment"] = display["monthly_payment"].fillna(0)
 
-# =========================
+# =====================================
 # MEMBER FILTER
-# =========================
+# =====================================
 if selected_ids:
     display = display[
         display["id"].isin(selected_ids)
     ]
 
-# =========================
-# REPORT HEADER
-# =========================
+# =====================================
+# REPORT SECTION
+# =====================================
 st.markdown("""
 <div class="report-box">
     <h3>Member Report</h3>
 </div>
 """, unsafe_allow_html=True)
 
-# =========================
-# TABLE
-# =========================
 st.dataframe(
     display[
         [
@@ -270,18 +277,15 @@ st.dataframe(
     hide_index=True
 )
 
-# =========================
-# SUMMARY HEADER
-# =========================
+# =====================================
+# SUMMARY SECTION
+# =====================================
 st.markdown("""
 <div class="summary-box">
     <h3>Summary</h3>
 </div>
 """, unsafe_allow_html=True)
 
-# =========================
-# TOTALS
-# =========================
 col1, col2 = st.columns(2)
 
 with col1:
@@ -295,3 +299,4 @@ with col2:
         "Grand Total Payment",
         f"{display['total_payment'].sum():,.2f}"
     )
+```
