@@ -3,99 +3,188 @@ import pandas as pd
 import requests
 from io import BytesIO
 
-st.set_page_config(page_title="Member Report", layout="wide")
+st.set_page_config(
+    page_title="Member Report",
+    layout="wide"
+)
 
-# -------------------------
-# UI THEME (UPDATED)
-# -------------------------
+# =========================
+# CUSTOM THEME
+# =========================
 st.markdown("""
 <style>
 
-/* Full page background: top green → blue → bottom indigo */
-[data-testid="stAppViewContainer"] > .main {
-    background: linear-gradient(to bottom,
-        #0f9d58 0%,      /* green (top) */
-        #4285f4 50%,     /* blue (middle) */
-        #3f51b5 100%     /* indigo (bottom) */
-    );
+/* Main page */
+[data-testid="stAppViewContainer"] {
+    background-color: #ffffff;
 }
 
-/* Sidebar (filter area → violet) */
+/* Sidebar */
 section[data-testid="stSidebar"] {
     background-color: #6a0dad;
 }
 
-/* Sidebar text color */
 section[data-testid="stSidebar"] * {
-    color: white;
+    color: white !important;
 }
 
-/* Metric cards styling */
-div[data-testid="stMetric"] {
-    background-color: rgba(255,255,255,0.10);
+/* Header */
+.header-box {
+    background-color: #d32f2f;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+/* Report Section */
+.report-box {
+    background-color: #1976d2;
     padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+/* Summary Section */
+.summary-box {
+    background-color: #2e7d32;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 15px;
+}
+
+/* Metric cards */
+div[data-testid="stMetric"] {
+    background-color: #2e7d32;
+    padding: 15px;
     border-radius: 10px;
 }
 
-/* Optional: make title more visible */
+/* Metric text */
+div[data-testid="stMetric"] label,
+div[data-testid="stMetric"] div {
+    color: white !important;
+}
+
+/* Dataframe */
+[data-testid="stDataFrame"] {
+    background-color: white;
+    border-radius: 10px;
+}
+
+/* Table text black */
+[data-testid="stDataFrame"] * {
+    color: black !important;
+}
+
+/* Date input values black */
+input {
+    color: black !important;
+}
+
+/* Select box values black */
+.stSelectbox div,
+.stMultiSelect div {
+    color: black !important;
+}
+
+/* Headings */
 h1, h2, h3 {
     color: white;
 }
 
-/* Table background improvement */
-div[data-testid="stDataFrame"] {
-    background-color: rgba(255,255,255,0.05);
-    border-radius: 10px;
+/* Hide charts */
+[data-testid="stPlotlyChart"],
+[data-testid="stVegaLiteChart"] {
+    display: none;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Member Report")
+# =========================
+# TITLE
+# =========================
+st.markdown("""
+<div class="header-box">
+    <h1>Member Report Dashboard</h1>
+</div>
+""", unsafe_allow_html=True)
 
+# =========================
+# DATA SOURCE
+# =========================
 DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/monthly_report.xlsx"
 
 MASTER_IDS = [str(i) for i in range(1001, 1027)]
 
-# -------------------------
+# =========================
 # LOAD DATA
-# -------------------------
+# =========================
 @st.cache_data
 def load_data():
     response = requests.get(DATA_URL)
     response.raise_for_status()
 
-    df = pd.read_excel(BytesIO(response.content), engine="openpyxl")
+    df = pd.read_excel(
+        BytesIO(response.content),
+        engine="openpyxl"
+    )
+
     df.columns = df.columns.str.strip()
 
-    df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
+    df["business_date"] = pd.to_datetime(
+        df["business_date"],
+        errors="coerce"
+    )
+
     df["id"] = df["id"].astype(str)
 
-    df = df[~df["id"].str.contains("GRAND", na=False)]
-    df = df[~df["id"].str.contains(r"\*", regex=True, na=False)]
+    df = df[
+        ~df["id"].str.contains(
+            "GRAND",
+            na=False
+        )
+    ]
+
+    df = df[
+        ~df["id"].str.contains(
+            r"\*",
+            regex=True,
+            na=False
+        )
+    ]
 
     return df
 
-
 df = load_data()
 
-# -------------------------
-# CAPITAL (UNCHANGED LOGIC)
-# -------------------------
-capital_df = df.groupby("id", as_index=False).agg({
+# =========================
+# CAPITAL TABLE
+# =========================
+capital_df = df.groupby(
+    "id",
+    as_index=False
+).agg({
     "total_payment": "max",
     "member_rank": "max"
 })
 
-# -------------------------
+# =========================
 # MASTER TABLE
-# -------------------------
-master = pd.DataFrame({"id": MASTER_IDS})
-display = master.merge(capital_df, on="id", how="left")
+# =========================
+master = pd.DataFrame({
+    "id": MASTER_IDS
+})
 
-# -------------------------
-# SIDEBAR FILTER
-# -------------------------
+display = master.merge(
+    capital_df,
+    on="id",
+    how="left"
+)
+
+# =========================
+# FILTERS
+# =========================
 st.sidebar.header("Filters")
 
 min_date = df["business_date"].min()
@@ -106,40 +195,67 @@ date_range = st.sidebar.date_input(
     [min_date, max_date]
 )
 
-selected_ids = st.sidebar.multiselect("Select ID", MASTER_IDS)
+selected_ids = st.sidebar.multiselect(
+    "Select Member ID",
+    MASTER_IDS
+)
 
-# -------------------------
-# APPLY DATE FILTER
-# -------------------------
+# =========================
+# DATE FILTER
+# =========================
 period_df = df.copy()
 
 if len(date_range) == 2:
     start_date, end_date = date_range
 
     period_df = period_df[
-        (period_df["business_date"] >= pd.Timestamp(start_date)) &
+        (period_df["business_date"] >= pd.Timestamp(start_date))
+        &
         (period_df["business_date"] <= pd.Timestamp(end_date))
     ]
 
-period_df = period_df[["id", "business_date", "monthly_payment"]]
+period_df = period_df[
+    [
+        "id",
+        "business_date",
+        "monthly_payment"
+    ]
+]
 
-# -------------------------
-# MERGE PERIOD DATA
-# -------------------------
-display = display.merge(period_df, on="id", how="left")
-display["monthly_payment"] = display["monthly_payment"].fillna(0)
+# =========================
+# MERGE
+# =========================
+display = display.merge(
+    period_df,
+    on="id",
+    how="left"
+)
 
-# -------------------------
-# FILTER IDS
-# -------------------------
+display["monthly_payment"] = (
+    display["monthly_payment"]
+    .fillna(0)
+)
+
+# =========================
+# MEMBER FILTER
+# =========================
 if selected_ids:
-    display = display[display["id"].isin(selected_ids)]
+    display = display[
+        display["id"].isin(selected_ids)
+    ]
 
-# -------------------------
-# DISPLAY
-# -------------------------
-st.subheader("Member Report")
+# =========================
+# REPORT HEADER
+# =========================
+st.markdown("""
+<div class="report-box">
+    <h3>Member Report</h3>
+</div>
+""", unsafe_allow_html=True)
 
+# =========================
+# TABLE
+# =========================
 st.dataframe(
     display[
         [
@@ -154,19 +270,28 @@ st.dataframe(
     hide_index=True
 )
 
-# -------------------------
-# GRAND TOTAL
-# -------------------------
-st.subheader("Grand Total")
+# =========================
+# SUMMARY HEADER
+# =========================
+st.markdown("""
+<div class="summary-box">
+    <h3>Summary</h3>
+</div>
+""", unsafe_allow_html=True)
 
+# =========================
+# TOTALS
+# =========================
 col1, col2 = st.columns(2)
 
-col1.metric(
-    "Monthly Payment (Filtered Period)",
-    f"{display['monthly_payment'].sum():,.2f}"
-)
+with col1:
+    st.metric(
+        "Monthly Payment",
+        f"{display['monthly_payment'].sum():,.2f}"
+    )
 
-col2.metric(
-    "Total Payment (Grand still paid)",
-    f"{display['total_payment'].sum():,.2f}"
-)
+with col2:
+    st.metric(
+        "Grand Total Payment",
+        f"{display['total_payment'].sum():,.2f}"
+    )
