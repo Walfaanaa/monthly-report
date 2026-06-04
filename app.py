@@ -261,7 +261,7 @@ with col6:
 # =====================================
 st.markdown("""
 <div class="report-box">
-    <h3>Members Who Did Not Pay</h3>
+    <h3>Members Who Did Not Pay this monthly payment</h3>
 </div>
 """, unsafe_allow_html=True)
 
