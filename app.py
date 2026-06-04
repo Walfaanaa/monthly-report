@@ -206,10 +206,10 @@ with col1:
     st.metric("Collected Amount This Month", f"{collected_amount:,.2f}")
 
 with col2:
-    st.metric("Expected Amount This Month", f"{expected_amount:,.2f}")
+    st.metric("Expected Amount within the period", f"{expected_amount:,.2f}")
 
 with col3:
-    st.metric("Unpaid Amount This Month", f"{unpaid_amount_total:,.2f}")
+    st.metric("Unpaid Amount ", f"{unpaid_amount_total:,.2f}")
 
 col4, col5, col6 = st.columns(3)
 
