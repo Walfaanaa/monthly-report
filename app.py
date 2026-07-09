@@ -13,9 +13,7 @@ LOGO_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/EGSA
 st.markdown(
     f"""
     <div style="text-align:center;">
-        <img src="{LOGO_URL}" 
-             width="150"
-             style="border-radius:10px;">
+        <img src="{LOGO_URL}" width="150" style="border-radius:10px;">
     </div>
     """,
     unsafe_allow_html=True
@@ -24,12 +22,6 @@ st.markdown(
 
 # ================= CSS =================
 
-st.markdown("""
-<style>
-...
-
-
-# ================= CSS =================
 st.markdown("""
 <style>
 
@@ -128,30 +120,24 @@ def load_data():
         engine="openpyxl"
     )
 
-
     df.columns = df.columns.str.strip()
-
 
     df["business_date"] = pd.to_datetime(
         df["business_date"],
         errors="coerce"
     )
 
-
     df["id"] = df["id"].astype(str)
-
 
     df["EGSA2026_27_monthly_payment"] = pd.to_numeric(
         df["EGSA2026_27_monthly_payment"],
         errors="coerce"
     ).fillna(0)
 
-
     df["End_2026_achievement"] = pd.to_numeric(
         df["End_2026_achievement"],
         errors="coerce"
     ).fillna(0)
-
 
     return df
 
@@ -186,7 +172,6 @@ selected_ids = st.sidebar.multiselect(
 # ================= FILTER =================
 
 filtered_df = df.copy()
-
 
 
 if len(date_range) == 2:
@@ -232,7 +217,6 @@ if selected_ids:
 
 # ================= REPORT =================
 
-
 st.markdown("""
 <div class="report-box">
 <h3>Member Payment Report</h3>
@@ -261,7 +245,6 @@ st.dataframe(
 
 # ================= SUMMARY =================
 
-
 st.markdown("""
 <div class="summary-box">
 <h3>Summary</h3>
@@ -277,20 +260,15 @@ MONTHLY_TARGET = 1000
 
 
 
-# Total Collection Calculation
-
 total_monthly_payment = (
-    member_summary[
-        "EGSA2026_27_monthly_payment"
-    ].sum()
+    member_summary["EGSA2026_27_monthly_payment"].sum()
 )
 
 
 total_achievement = (
-    member_summary[
-        "End_2026_achievement"
-    ].sum()
+    member_summary["End_2026_achievement"].sum()
 )
+
 
 
 total_collected = (
@@ -318,9 +296,7 @@ outstanding_amount = (
 
 
 paid_members = member_summary[
-    member_summary[
-        "EGSA2026_27_monthly_payment"
-    ] > 0
+    member_summary["EGSA2026_27_monthly_payment"] > 0
 ].shape[0]
 
 
@@ -335,7 +311,6 @@ unpaid_members = (
 
 # ================= METRICS =================
 
-
 col1,col2,col3 = st.columns(3)
 
 
@@ -347,7 +322,6 @@ with col1:
     )
 
 
-
 with col2:
 
     st.metric(
@@ -356,14 +330,12 @@ with col2:
     )
 
 
-
 with col3:
 
     st.metric(
         "Outstanding Monthly Amount",
         f"{outstanding_amount:,.2f}"
     )
-
 
 
 
@@ -379,14 +351,12 @@ with col4:
     )
 
 
-
 with col5:
 
     st.metric(
         "End 2026 Achievement Total",
         f"{total_achievement:,.2f}"
     )
-
 
 
 with col6:
@@ -398,9 +368,7 @@ with col6:
 
 
 
-
 # ================= UNPAID LIST =================
-
 
 st.markdown("""
 <div class="report-box">
@@ -412,9 +380,7 @@ unsafe_allow_html=True)
 
 
 unpaid_df = member_summary[
-    member_summary[
-        "EGSA2026_27_monthly_payment"
-    ] == 0
+    member_summary["EGSA2026_27_monthly_payment"] == 0
 ]
 
 
@@ -430,5 +396,4 @@ st.dataframe(
 
     use_container_width=True,
     hide_index=True
-
 )
