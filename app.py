@@ -3,8 +3,10 @@ import pandas as pd
 import requests
 from io import BytesIO
 
-st.set_page_config(page_title="Member Report", layout="wide")
+st.set_page_config(page_title="EGSA Member Report", layout="wide")
 
+
+# ================= CSS =================
 st.markdown("""
 <style>
 
@@ -26,15 +28,6 @@ section[data-testid="stSidebar"] * {
     font-weight: bold !important;
 }
 
-[data-testid="stDateInput"] {
-    background-color: white !important;
-    border-radius: 8px;
-}
-
-[data-testid="stDateInput"] svg {
-    color: black !important;
-}
-
 .stMultiSelect div {
     color: black !important;
 }
@@ -43,21 +36,18 @@ section[data-testid="stSidebar"] * {
     background-color: #d32f2f;
     padding: 15px;
     border-radius: 10px;
-    margin-bottom: 15px;
 }
 
 .report-box {
     background-color: #1976d2;
     padding: 10px;
     border-radius: 10px;
-    margin-bottom: 10px;
 }
 
 .summary-box {
     background-color: #2e7d32;
     padding: 10px;
     border-radius: 10px;
-    margin-top: 15px;
 }
 
 div[data-testid="stMetric"] {
@@ -71,168 +61,282 @@ div[data-testid="stMetric"] div {
     color: white !important;
 }
 
-[data-testid="stDataFrame"] {
-    background-color: white;
-    border-radius: 10px;
-}
-
 [data-testid="stDataFrame"] * {
     color: black !important;
 }
 
-h1, h2, h3 {
-    color: white;
+h1,h2,h3 {
+    color:white;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
+
+# ================= HEADER =================
 st.markdown("""
 <div class="header-box">
-    <h1>Member Report Dashboard</h1>
+<h1>EGSA 2026/27 Member Report Dashboard</h1>
 </div>
 """, unsafe_allow_html=True)
+
+
+# ================= DATA =================
 
 DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/EGSA2026_27_Monthly_report.xlsx"
 
-MASTER_IDS = [str(i) for i in range(1001, 1027)]
-MONTHLY_CONTRIBUTION = 1000
 
 @st.cache_data
 def load_data():
+
     response = requests.get(DATA_URL)
     response.raise_for_status()
 
-    df = pd.read_excel(BytesIO(response.content), engine="openpyxl")
+    df = pd.read_excel(
+        BytesIO(response.content),
+        engine="openpyxl"
+    )
+
     df.columns = df.columns.str.strip()
 
-    df["business_date"] = pd.to_datetime(df["business_date"], errors="coerce")
+    df["business_date"] = pd.to_datetime(
+        df["business_date"],
+        errors="coerce"
+    )
+
     df["id"] = df["id"].astype(str)
 
-    df = df[~df["id"].str.contains("GRAND", na=True)]
-    df = df[~df["id"].str.contains(r"\*", regex=True, na=False)]
+    df["EGSA2026_27_monthly_payment"] = pd.to_numeric(
+        df["EGSA2026_27_monthly_payment"],
+        errors="coerce"
+    ).fillna(0)
+
+    df["End_2026_achievement"] = pd.to_numeric(
+        df["End_2026_achievement"],
+        errors="coerce"
+    ).fillna(0)
+
 
     return df
 
+
 df = load_data()
+
+
+# ================= SIDEBAR =================
 
 st.sidebar.header("Filters")
 
-min_date = df["business_date"].min()
-max_date = df["business_date"].max()
 
 date_range = st.sidebar.date_input(
     "Business Date Range",
-    value=[min_date, max_date]
+    value=[
+        df["business_date"].min(),
+        df["business_date"].max()
+    ]
 )
+
+
+member_list = sorted(df["id"].unique())
+
 
 selected_ids = st.sidebar.multiselect(
     "Select Member ID",
-    MASTER_IDS
+    member_list
 )
+
+
+# ================= FILTER =================
 
 filtered_df = df.copy()
 
-if len(date_range) == 2:
-    start_date, end_date = date_range
+
+if len(date_range)==2:
+
     filtered_df = filtered_df[
-        (filtered_df["business_date"] >= pd.Timestamp(start_date)) &
-        (filtered_df["business_date"] <= pd.Timestamp(end_date))
+        (filtered_df["business_date"] >= pd.Timestamp(date_range[0]))
+        &
+        (filtered_df["business_date"] <= pd.Timestamp(date_range[1]))
     ]
 
 
-member_period = filtered_df.groupby("id", as_index=False).agg(
-    monthly_payment=("monthly_payment", "sum")
+
+# ================= MEMBER SUMMARY =================
+
+member_summary = filtered_df.groupby(
+    ["id","Name"],
+    as_index=False
+).agg(
+
+    EGSA2026_27_monthly_payment=(
+        "EGSA2026_27_monthly_payment",
+        "sum"
+    ),
+
+    End_2026_achievement=(
+        "End_2026_achievement",
+        "max"
+    )
+
 )
 
-capital_df = df.groupby("id", as_index=False).agg(
-    total_payment=("total_payment", "max"),
-    member_rank=("member_rank", "max")
-)
-
-master = pd.DataFrame({"id": MASTER_IDS})
-
-display = master.merge(capital_df, on="id", how="left")
-display = display.merge(member_period, on="id", how="left")
-
-display["monthly_payment"] = display["monthly_payment"].fillna(0)
-display["total_payment"] = display["total_payment"].fillna(0)
-
-
-paid_mask = display["monthly_payment"] > 0
-
-paid_members = display.loc[paid_mask, "id"]
-non_paid_members = display.loc[~paid_mask, "id"]
-
-paid_count = len(paid_members)
-unpaid_count = len(non_paid_members)
-
-total_members = len(MASTER_IDS)
-
-expected_amount = total_members * MONTHLY_CONTRIBUTION
-collected_amount = display["monthly_payment"].sum()
-
-unpaid_amount_total = len(non_paid_members) * MONTHLY_CONTRIBUTION
-
-# 🟢 GRAND TOTAL COLLECTED (NEW)
-grand_collected = display["total_payment"].sum()
 
 if selected_ids:
-    display = display[display["id"].isin(selected_ids)]
+
+    member_summary = member_summary[
+        member_summary["id"].isin(selected_ids)
+    ]
+
+
+
+# ================= REPORT =================
 
 st.markdown("""
 <div class="report-box">
-    <h3>Member Report</h3>
+<h3>Member Payment Report</h3>
 </div>
-""", unsafe_allow_html=True)
+""",
+unsafe_allow_html=True)
+
+
 
 st.dataframe(
-    display[
-        ["id", "monthly_payment", "total_payment", "member_rank"]
+
+    member_summary[
+        [
+        "id",
+        "Name",
+        "EGSA2026_27_monthly_payment",
+        "End_2026_achievement"
+        ]
     ],
+
     use_container_width=True,
     hide_index=True
+
 )
+
+
+
+# ================= SUMMARY =================
+
 
 st.markdown("""
 <div class="summary-box">
-    <h3>Summary</h3>
+<h3>Summary</h3>
 </div>
-""", unsafe_allow_html=True)
+""",
+unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns(3)
+
+
+TOTAL_MEMBERS = df["id"].nunique()
+
+MONTHLY_TARGET = 1000
+
+
+col1,col2,col3 = st.columns(3)
+
 
 with col1:
-    st.metric("Collected Amount This Month", f"{collected_amount:,.2f}")
+
+    st.metric(
+        "Total Collected",
+        f"{member_summary['EGSA2026_27_monthly_payment'].sum():,.2f}"
+    )
+
 
 with col2:
-    st.metric("Expected Amount within the period", f"{expected_amount:,.2f}")
+
+    expected = TOTAL_MEMBERS * MONTHLY_TARGET
+
+    st.metric(
+        "Expected Amount",
+        f"{expected:,.2f}"
+    )
+
 
 with col3:
-    st.metric("Unpaid Amount ", f"{unpaid_amount_total:,.2f}")
 
-col4, col5, col6 = st.columns(3)
+    unpaid = (
+        expected -
+        member_summary["EGSA2026_27_monthly_payment"].sum()
+    )
+
+    st.metric(
+        "Outstanding Amount",
+        f"{unpaid:,.2f}"
+    )
+
+
+
+col4,col5,col6 = st.columns(3)
+
 
 with col4:
-    st.metric("Grand Collected Money Still", f"{grand_collected:,.2f}")
+
+    st.metric(
+        "No. of Members",
+        TOTAL_MEMBERS
+    )
+
 
 with col5:
-    st.metric("No. of Paid Members", paid_count)
+
+    paid_members = (
+        member_summary[
+            member_summary[
+                "EGSA2026_27_monthly_payment"
+            ]>0
+        ]
+        .shape[0]
+    )
+
+
+    st.metric(
+        "Paid Members",
+        paid_members
+    )
+
 
 with col6:
-    st.metric("No. of Unpaid members", unpaid_count)
 
-# =====================================
-# UNPAID LIST
-# =====================================
+    st.metric(
+        "Unpaid Members",
+        TOTAL_MEMBERS-paid_members
+    )
+
+
+
+# ================= UNPAID MEMBERS =================
+
+
 st.markdown("""
 <div class="report-box">
-    <h3>Members Who Did Not Pay this monthly payment</h3>
+<h3>Members Who Did Not Pay</h3>
 </div>
-""", unsafe_allow_html=True)
+""",
+unsafe_allow_html=True)
 
-unpaid_df = pd.DataFrame({
-    "Member ID": sorted(non_paid_members)
-})
 
-st.dataframe(unpaid_df, use_container_width=True, hide_index=True)
+
+unpaid_df = member_summary[
+    member_summary[
+        "EGSA2026_27_monthly_payment"
+    ]==0
+]
+
+
+st.dataframe(
+
+    unpaid_df[
+        [
+        "id",
+        "Name"
+        ]
+    ],
+
+    use_container_width=True,
+    hide_index=True
+
+)
