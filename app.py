@@ -8,15 +8,18 @@ st.set_page_config(page_title="EGSA Member Report", layout="wide")
 
 # ================= LOGO =================
 
+# ================= LOGO =================
+
 LOGO_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/EGSA.png"
 
 st.markdown(
     f"""
     <div style="text-align:center;">
-        <img src="{LOGO_URL}" width="150" style="border-radius:10px;">
+        <img src="{LOGO_URL}" width="250" style="border-radius:10px;">
     </div>
     """,
     unsafe_allow_html=True
+)
 )
 
 
