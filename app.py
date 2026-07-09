@@ -93,7 +93,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/monthly_report.xlsx"
+DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/EGSA2026_27_Monthly_report.xlsx"
 
 MASTER_IDS = [str(i) for i in range(1001, 1027)]
 MONTHLY_CONTRIBUTION = 1000
