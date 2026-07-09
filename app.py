@@ -36,18 +36,21 @@ section[data-testid="stSidebar"] * {
     background-color: #d32f2f;
     padding: 15px;
     border-radius: 10px;
+    margin-bottom:15px;
 }
 
 .report-box {
     background-color: #1976d2;
     padding: 10px;
     border-radius: 10px;
+    margin-top:15px;
 }
 
 .summary-box {
     background-color: #2e7d32;
     padding: 10px;
     border-radius: 10px;
+    margin-top:15px;
 }
 
 div[data-testid="stMetric"] {
@@ -58,11 +61,11 @@ div[data-testid="stMetric"] {
 
 div[data-testid="stMetric"] label,
 div[data-testid="stMetric"] div {
-    color: white !important;
+    color:white !important;
 }
 
 [data-testid="stDataFrame"] * {
-    color: black !important;
+    color:black !important;
 }
 
 h1,h2,h3 {
@@ -73,17 +76,22 @@ h1,h2,h3 {
 """, unsafe_allow_html=True)
 
 
+
 # ================= HEADER =================
+
 st.markdown("""
 <div class="header-box">
 <h1>EGSA 2026/27 Member Report Dashboard</h1>
 </div>
-""", unsafe_allow_html=True)
+""",
+unsafe_allow_html=True)
 
 
-# ================= DATA =================
+
+# ================= DATA SOURCE =================
 
 DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/EGSA2026_27_Monthly_report.xlsx"
+
 
 
 @st.cache_data
@@ -97,19 +105,24 @@ def load_data():
         engine="openpyxl"
     )
 
+
     df.columns = df.columns.str.strip()
+
 
     df["business_date"] = pd.to_datetime(
         df["business_date"],
         errors="coerce"
     )
 
+
     df["id"] = df["id"].astype(str)
+
 
     df["EGSA2026_27_monthly_payment"] = pd.to_numeric(
         df["EGSA2026_27_monthly_payment"],
         errors="coerce"
     ).fillna(0)
+
 
     df["End_2026_achievement"] = pd.to_numeric(
         df["End_2026_achievement"],
@@ -120,7 +133,9 @@ def load_data():
     return df
 
 
+
 df = load_data()
+
 
 
 # ================= SIDEBAR =================
@@ -137,13 +152,12 @@ date_range = st.sidebar.date_input(
 )
 
 
-member_list = sorted(df["id"].unique())
-
 
 selected_ids = st.sidebar.multiselect(
     "Select Member ID",
-    member_list
+    sorted(df["id"].unique())
 )
+
 
 
 # ================= FILTER =================
@@ -151,7 +165,8 @@ selected_ids = st.sidebar.multiselect(
 filtered_df = df.copy()
 
 
-if len(date_range)==2:
+
+if len(date_range) == 2:
 
     filtered_df = filtered_df[
         (filtered_df["business_date"] >= pd.Timestamp(date_range[0]))
@@ -168,17 +183,20 @@ member_summary = filtered_df.groupby(
     as_index=False
 ).agg(
 
-    EGSA2026_27_monthly_payment=(
+    EGSA2026_27_monthly_payment=
+    (
         "EGSA2026_27_monthly_payment",
         "sum"
     ),
 
-    End_2026_achievement=(
+    End_2026_achievement=
+    (
         "End_2026_achievement",
         "max"
     )
 
 )
+
 
 
 if selected_ids:
@@ -190,6 +208,7 @@ if selected_ids:
 
 
 # ================= REPORT =================
+
 
 st.markdown("""
 <div class="report-box">
@@ -204,16 +223,15 @@ st.dataframe(
 
     member_summary[
         [
-        "id",
-        "Name",
-        "EGSA2026_27_monthly_payment",
-        "End_2026_achievement"
+            "id",
+            "Name",
+            "EGSA2026_27_monthly_payment",
+            "End_2026_achievement"
         ]
     ],
 
     use_container_width=True,
     hide_index=True
-
 )
 
 
@@ -235,85 +253,135 @@ TOTAL_MEMBERS = df["id"].nunique()
 MONTHLY_TARGET = 1000
 
 
+
+# Total Collection Calculation
+
+total_monthly_payment = (
+    member_summary[
+        "EGSA2026_27_monthly_payment"
+    ].sum()
+)
+
+
+total_achievement = (
+    member_summary[
+        "End_2026_achievement"
+    ].sum()
+)
+
+
+total_collected = (
+    total_monthly_payment
+    +
+    total_achievement
+)
+
+
+
+expected_amount = (
+    TOTAL_MEMBERS
+    *
+    MONTHLY_TARGET
+)
+
+
+
+outstanding_amount = (
+    expected_amount
+    -
+    total_monthly_payment
+)
+
+
+
+paid_members = member_summary[
+    member_summary[
+        "EGSA2026_27_monthly_payment"
+    ] > 0
+].shape[0]
+
+
+
+unpaid_members = (
+    TOTAL_MEMBERS
+    -
+    paid_members
+)
+
+
+
+# ================= METRICS =================
+
+
 col1,col2,col3 = st.columns(3)
 
 
 with col1:
 
     st.metric(
-        "Total Collected",
-        f"{member_summary['EGSA2026_27_monthly_payment'].sum():,.2f}"
+        "Total Collected (Monthly + Achievement)",
+        f"{total_collected:,.2f}"
     )
+
 
 
 with col2:
 
-    expected = TOTAL_MEMBERS * MONTHLY_TARGET
-
     st.metric(
-        "Expected Amount",
-        f"{expected:,.2f}"
+        "Expected Monthly Amount",
+        f"{expected_amount:,.2f}"
     )
+
 
 
 with col3:
 
-    unpaid = (
-        expected -
-        member_summary["EGSA2026_27_monthly_payment"].sum()
+    st.metric(
+        "Outstanding Monthly Amount",
+        f"{outstanding_amount:,.2f}"
     )
 
-    st.metric(
-        "Outstanding Amount",
-        f"{unpaid:,.2f}"
-    )
 
 
 
 col4,col5,col6 = st.columns(3)
 
 
+
 with col4:
 
     st.metric(
-        "No. of Members",
-        TOTAL_MEMBERS
+        "Monthly Payment Total",
+        f"{total_monthly_payment:,.2f}"
     )
+
 
 
 with col5:
 
-    paid_members = (
-        member_summary[
-            member_summary[
-                "EGSA2026_27_monthly_payment"
-            ]>0
-        ]
-        .shape[0]
-    )
-
-
     st.metric(
-        "Paid Members",
-        paid_members
+        "End 2026 Achievement Total",
+        f"{total_achievement:,.2f}"
     )
+
 
 
 with col6:
 
     st.metric(
         "Unpaid Members",
-        TOTAL_MEMBERS-paid_members
+        unpaid_members
     )
 
 
 
-# ================= UNPAID MEMBERS =================
+
+# ================= UNPAID LIST =================
 
 
 st.markdown("""
 <div class="report-box">
-<h3>Members Who Did Not Pay</h3>
+<h3>Members Who Did Not Pay Monthly Contribution</h3>
 </div>
 """,
 unsafe_allow_html=True)
@@ -323,16 +391,17 @@ unsafe_allow_html=True)
 unpaid_df = member_summary[
     member_summary[
         "EGSA2026_27_monthly_payment"
-    ]==0
+    ] == 0
 ]
+
 
 
 st.dataframe(
 
     unpaid_df[
         [
-        "id",
-        "Name"
+            "id",
+            "Name"
         ]
     ],
 
