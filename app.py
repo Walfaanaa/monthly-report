@@ -304,7 +304,7 @@ total_half_achieved = (
 total_collected = (
     total_monthly_payment
     +
-    total_achievement
+    total_achievement+total_half_achieved
 )
 
 
