@@ -217,12 +217,12 @@ member_summary = filtered_df.groupby(
     EGSA2027_Half_plan=
     (
         "EGSA2027_Half_plan",
-        "sum"
+        "sum"+168000
     ),
     EGSA2027_Half_achievement=
     (
         "EGSA2027_Half_achievement",
-        "sum"
+        "sum"+EGSA2026_27_monthly_payment
     )
 
 )
