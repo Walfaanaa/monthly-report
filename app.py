@@ -395,20 +395,13 @@ with col8:
     )
 
 
-col9, col10 = st.columns(2)
+col9 = st.columns(1)[0]
 
 with col9:
-    st.metric(
-        "Remaining Half Plan",
-        f"{half_plan_remaining:,.2f}"
-    )
-
-with col10:
     st.metric(
         "Total Collected",
         f"{total_collected:,.2f}"
     )
-
 
 # ================= UNPAID LIST =================
 
