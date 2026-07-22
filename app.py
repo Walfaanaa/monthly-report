@@ -378,13 +378,13 @@ with col5:
 
 with col6:
     st.metric(
-        "2027 Half Plan",
+        "EGSA2027_Half_plan",
         f"{total_half_plan:,.2f}"
     )
 
 with col7:
     st.metric(
-        "2027 Half Achievement",
+        "EGSA2027_Half_achievement",
         f"{total_half_achieved:,.2f}"
     )
 
