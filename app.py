@@ -222,7 +222,7 @@ member_summary = filtered_df.groupby(
     EGSA2027_Half_achievement=
     (
         "EGSA2027_Half_achievement",
-        "sum"+EGSA2026_27_monthly_payment
+        "sum"
     )
 
 )
@@ -294,11 +294,11 @@ total_achievement = (
 )
 
 total_half_plan = (
-    member_summary["EGSA2027_Half_plan"].sum()
+    member_summary["EGSA2027_Half_plan"].sum()+168000
 )
 
 total_half_achieved = (
-    member_summary["EGSA2027_Half_achievement"].sum()
+    member_summary["EGSA2027_Half_achievement"].sum()+total_monthly_payment
 )
 
 total_collected = (
