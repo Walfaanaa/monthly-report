@@ -168,20 +168,24 @@ selected_ids = st.sidebar.multiselect(
 )
 
 
-
 # ================= FILTER =================
 
 filtered_df = df.copy()
 
-
 if len(date_range) == 2:
 
-    filtered_df = filtered_df[
-        (filtered_df["business_date"] >= pd.Timestamp(date_range[0]))
-        &
-        (filtered_df["business_date"] <= pd.Timestamp(date_range[1]))
-    ]
+    start = pd.Timestamp(date_range[0])
+    end = pd.Timestamp(date_range[1])
 
+    filtered_df = filtered_df[
+        (
+            filtered_df["business_date"].between(start, end)
+        )
+        |
+        (
+            filtered_df["business_date"].isna()
+        )
+    ]
 
 
 # ================= MEMBER SUMMARY =================
