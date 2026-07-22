@@ -139,13 +139,13 @@ def load_data():
         errors="coerce"
     ).fillna(0)
     
-    df["EGSA2027_Half_plan"] = pd.to_numeric(
-        df["EGSA2027_Half_plan"],
+    df["EGSA2027_Half_Year_plan"] = pd.to_numeric(
+        df["EGSA2027_Half_Year_plan"],
         errors="coerce"
     ).fillna(0)
 
-    df["EGSA2027_Half_achievement"] = pd.to_numeric(
-        df["EGSA2027_Half_achievement"],
+    df["EGSA2027_Half_Year_achievement"] = pd.to_numeric(
+        df["EGSA2027_Half_Year_achievement"],
         errors="coerce"
     ).fillna(0)
 
@@ -214,14 +214,14 @@ member_summary = filtered_df.groupby(
         "End_2026_achievement",
         "max"
     ),
-    EGSA2027_Half_plan=
+    EGSA2027_Half_Year_plan=
     (
-        "EGSA2027_Half_plan",
+        "EGSA2027_Half_Year_plan",
         "sum"
     ),
-    EGSA2027_Half_achievement=
+    EGSA2027_Half_Year_achievement=
     (
-        "EGSA2027_Half_achievement",
+        "EGSA2027_Half_Year_achievement",
         "sum"
     )
 
@@ -256,8 +256,8 @@ st.dataframe(
             "Name",
             "EGSA2026_27_monthly_payment",
             "End_2026_achievement",
-            "EGSA2027_Half_plan",
-            "EGSA2027_Half_achievement"
+            "EGSA2027_Half_Year_plan",
+            "EGSA2027_Half_Year_achievement"
         ]
     ],
 
@@ -294,11 +294,11 @@ total_achievement = (
 )
 
 total_half_plan = (
-    member_summary["EGSA2027_Half_plan"].sum()+168000
+    member_summary["EGSA2027_Half_Year_plan"].sum()+168000
 )
 
 total_half_achieved = (
-    member_summary["EGSA2027_Half_achievement"].sum()+total_monthly_payment
+    member_summary["EGSA2027_Half_Year_achievement"].sum()+total_monthly_payment
 )
 
 total_collected = (
@@ -378,13 +378,13 @@ with col5:
 
 with col6:
     st.metric(
-        "EGSA2027_Half_plan",
+        "EGSA2027_Half_Year_plan",
         f"{total_half_plan:,.2f}"
     )
 
 with col7:
     st.metric(
-        "EGSA2027_Half_achievement",
+        "EGSA2027_Half_Year_achievement",
         f"{total_half_achieved:,.2f}"
     )
 
