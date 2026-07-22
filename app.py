@@ -138,13 +138,21 @@ def load_data():
         df["End_2026_achievement"],
         errors="coerce"
     ).fillna(0)
+    
+    df["EGSA2027_Half_plan"] = pd.to_numeric(
+        df["EGSA2027_Half_plan"],
+        errors="coerce"
+    ).fillna(0)
+
+    df["EGSA2027_Half_achievement"] = pd.to_numeric(
+        df["EGSA2027_Half_achievement"],
+        errors="coerce"
+    ).fillna(0)
 
     return df
 
 
-
 df = load_data()
-
 
 
 # ================= SIDEBAR =================
@@ -205,6 +213,16 @@ member_summary = filtered_df.groupby(
     (
         "End_2026_achievement",
         "max"
+    ),
+    EGSA2027_Half_plan=
+    (
+        "EGSA2027_Half_plan",
+        "sum"
+    ),
+    EGSA2027_Half_achievement=
+    (
+        "EGSA2027_Half_achievement",
+        "sum"
     )
 
 )
@@ -237,7 +255,9 @@ st.dataframe(
             "id",
             "Name",
             "EGSA2026_27_monthly_payment",
-            "End_2026_achievement"
+            "End_2026_achievement",
+            "EGSA2027_Half_plan",
+            "EGSA2027_Half_achievement"
         ]
     ],
 
@@ -273,7 +293,13 @@ total_achievement = (
     member_summary["End_2026_achievement"].sum()
 )
 
+total_half_plan = (
+    member_summary["EGSA2027_Half_plan"].sum()
+)
 
+total_half_achieved = (
+    member_summary["EGSA2027_Half_achievement"].sum()
+)
 
 total_collected = (
     total_monthly_payment
@@ -315,61 +341,73 @@ unpaid_members = (
 
 # ================= METRICS =================
 
-col1,col2,col3 = st.columns(3)
-
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-
-    st.metric(
-        "Total Collected (Monthly + Achievement)",
-        f"{total_collected:,.2f}"
-    )
-
-
-with col2:
-
-    st.metric(
-        "Expected Monthly Amount",
-        f"{expected_amount:,.2f}"
-    )
-
-
-with col3:
-
-    st.metric(
-        "Outstanding Monthly Amount",
-        f"{outstanding_amount:,.2f}"
-    )
-
-
-
-col4,col5,col6 = st.columns(3)
-
-
-
-with col4:
-
     st.metric(
         "Monthly Payment Total",
         f"{total_monthly_payment:,.2f}"
     )
 
-
-with col5:
-
+with col2:
     st.metric(
-        "End 2026 Achievement Total",
-        f"{total_achievement:,.2f}"
+        "Expected Monthly",
+        f"{expected_amount:,.2f}"
+    )
+
+with col3:
+    st.metric(
+        "Outstanding Monthly",
+        f"{outstanding_amount:,.2f}"
+    )
+
+with col4:
+    st.metric(
+        "Paid Members",
+        paid_members
     )
 
 
-with col6:
+col5, col6, col7, col8 = st.columns(4)
 
+with col5:
+    st.metric(
+        "End 2026 Achievement",
+        f"{total_achievement:,.2f}"
+    )
+
+with col6:
+    st.metric(
+        "2027 Half Plan",
+        f"{total_half_plan:,.2f}"
+    )
+
+with col7:
+    st.metric(
+        "2027 Half Achievement",
+        f"{total_half_achieved:,.2f}"
+    )
+
+with col8:
     st.metric(
         "Unpaid Members",
         unpaid_members
     )
 
+
+col9, col10 = st.columns(2)
+
+with col9:
+    st.metric(
+        "Remaining Half Plan",
+        f"{half_plan_remaining:,.2f}"
+    )
+
+with col10:
+    st.metric(
+        "Total Collected",
+        f"{total_collected:,.2f}"
+    )
 
 
 # ================= UNPAID LIST =================
