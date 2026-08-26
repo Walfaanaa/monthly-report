@@ -153,21 +153,18 @@ def load_data():
 
 
 df = load_data()
-
 # ================= SIDEBAR =================
 
 st.sidebar.header("Filters")
 
-# Business Date filter
 date_range = st.sidebar.date_input(
     "Business Date Range",
-    value=(
+    value=[
         df["business_date"].min().date(),
         df["business_date"].max().date()
-    )
+    ]
 )
 
-# Member ID filter
 selected_ids = st.sidebar.multiselect(
     "Select Member ID",
     sorted(df["id"].unique())
@@ -178,17 +175,22 @@ selected_ids = st.sidebar.multiselect(
 
 filtered_df = df.copy()
 
-# Filter by Business Date
 if len(date_range) == 2:
 
     start = pd.Timestamp(date_range[0])
     end = pd.Timestamp(date_range[1])
 
     filtered_df = filtered_df[
-        filtered_df["business_date"].between(start, end)
+        (
+            filtered_df["business_date"].between(start, end)
+        )
+        |
+        (
+            filtered_df["business_date"].isna()
+        )
     ]
 
-# Filter by Member ID
+# Member ID filter
 if selected_ids:
 
     filtered_df = filtered_df[
