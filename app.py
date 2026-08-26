@@ -3,15 +3,9 @@ import pandas as pd
 import requests
 from io import BytesIO
 
-st.set_page_config(
-    page_title="EGSA Member Report",
-    layout="wide"
-)
+st.set_page_config(page_title="EGSA Member Report", layout="wide")
 
-
-# ============================================================
-# LOGO
-# ============================================================
+# ================= LOGO =================
 
 LOGO_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/EGSA.png"
 
@@ -25,147 +19,100 @@ st.markdown(
 )
 
 
-# ============================================================
-# CSS
-# ============================================================
 
-st.markdown(
-    """
-    <style>
+# ================= CSS =================
 
-    [data-testid="stAppViewContainer"] {
-        background-color: white;
-    }
+st.markdown("""
+<style>
 
-    /* SIDEBAR */
-    section[data-testid="stSidebar"] {
-        background-color: #6a0dad;
-    }
+[data-testid="stAppViewContainer"] {
+    background-color: white;
+}
 
-    section[data-testid="stSidebar"] * {
-        color: white !important;
-    }
+section[data-testid="stSidebar"] {
+    background-color: #6a0dad;
+}
 
-    /* DATE INPUT */
-    [data-testid="stDateInput"] input {
-        color: black !important;
-        -webkit-text-fill-color: black !important;
-        font-weight: bold !important;
-    }
+section[data-testid="stSidebar"] * {
+    color: white !important;
+}
 
-    /* MULTISELECT */
-    .stMultiSelect div {
-        color: black !important;
-    }
+[data-testid="stDateInput"] input {
+    color: black !important;
+    -webkit-text-fill-color: black !important;
+    font-weight: bold !important;
+}
 
-    /* HEADER */
-    .header-box {
-        background-color: #d32f2f;
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 15px;
-    }
+.stMultiSelect div {
+    color: black !important;
+}
 
-    /* REPORT HEADER */
-    .report-box {
-        background-color: #1976d2;
-        padding: 10px;
-        border-radius: 10px;
-        margin-top: 15px;
-        margin-bottom: 10px;
-    }
+.header-box {
+    background-color: #d32f2f;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom:15px;
+}
 
-    /* SUMMARY HEADER */
-    .summary-box {
-        background-color: #2e7d32;
-        padding: 10px;
-        border-radius: 10px;
-        margin-top: 15px;
-        margin-bottom: 10px;
-    }
+.report-box {
+    background-color: #1976d2;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top:15px;
+}
 
-    /* METRICS */
-    div[data-testid="stMetric"] {
-        background-color: #2e7d32;
-        padding: 15px;
-        border-radius: 10px;
-    }
+.summary-box {
+    background-color: #2e7d32;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top:15px;
+}
 
-    div[data-testid="stMetric"] label,
-    div[data-testid="stMetric"] div {
-        color: white !important;
-    }
+div[data-testid="stMetric"] {
+    background-color: #2e7d32;
+    padding: 15px;
+    border-radius: 10px;
+}
 
-    /* DATAFRAME */
-    [data-testid="stDataFrame"] * {
-        color: black !important;
-    }
+div[data-testid="stMetric"] label,
+div[data-testid="stMetric"] div {
+    color:white !important;
+}
 
-    /* HEADINGS */
-    h1,
-    h2,
-    h3 {
-        color: white;
-    }
+[data-testid="stDataFrame"] * {
+    color:black !important;
+}
 
-    /* BUSINESS DATE DISPLAY */
-    .business-date-box {
-        background-color: #f5f5f5;
-        border: 2px solid #333333;
-        padding: 12px 18px;
-        border-radius: 8px;
-        margin-top: 10px;
-        margin-bottom: 15px;
-        text-align: center;
-    }
+h1,h2,h3 {
+    color:white;
+}
 
-    .business-date-label {
-        color: black !important;
-        font-size: 18px;
-        font-weight: bold;
-    }
-
-    .business-date-value {
-        color: black !important;
-        font-size: 20px;
-        font-weight: bold;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+</style>
+""", unsafe_allow_html=True)
 
 
-# ============================================================
-# HEADER
-# ============================================================
 
-st.markdown(
-    """
-    <div class="header-box">
-        <h1>EGSA 2026/27 Member Report Dashboard</h1>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# ================= HEADER =================
+
+st.markdown("""
+<div class="header-box">
+<h1>EGSA 2026/27 Member Report Dashboard</h1>
+</div>
+""",
+unsafe_allow_html=True)
 
 
-# ============================================================
-# DATA SOURCE
-# ============================================================
 
-DATA_URL = (
-    "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/"
-    "EGSA2026_27_Monthly_report.xlsx"
-)
+# ================= DATA SOURCE =================
+
+DATA_URL = "https://raw.githubusercontent.com/Walfaanaa/monthly-report/main/EGSA2026_27_Monthly_report.xlsx"
+
 
 
 @st.cache_data
 def load_data():
 
     response = requests.get(DATA_URL)
-
     response.raise_for_status()
 
     df = pd.read_excel(
@@ -173,37 +120,30 @@ def load_data():
         engine="openpyxl"
     )
 
-    # Clean column names
     df.columns = df.columns.str.strip()
 
-    # Business Date
     df["business_date"] = pd.to_datetime(
         df["business_date"],
         errors="coerce"
     )
 
-    # ID
     df["id"] = df["id"].astype(str)
 
-    # Monthly Payment
     df["EGSA2026_27_monthly_payment"] = pd.to_numeric(
         df["EGSA2026_27_monthly_payment"],
         errors="coerce"
     ).fillna(0)
 
-    # End 2026 Achievement
     df["End_2026_achievement"] = pd.to_numeric(
         df["End_2026_achievement"],
         errors="coerce"
     ).fillna(0)
-
-    # Half Year Plan
+    
     df["EGSA2027_Half_Year_plan"] = pd.to_numeric(
         df["EGSA2027_Half_Year_plan"],
         errors="coerce"
     ).fillna(0)
 
-    # Half Year Achievement
     df["EGSA2027_Half_Year_achievement"] = pd.to_numeric(
         df["EGSA2027_Half_Year_achievement"],
         errors="coerce"
@@ -213,48 +153,17 @@ def load_data():
 
 
 df = load_data()
-
-
-# ============================================================
-# SIDEBAR
-# ============================================================
+# ================= SIDEBAR =================
 
 st.sidebar.header("Filters")
 
-
-# ------------------------------------------------------------
-# BUSINESS DATE RANGE
-# ------------------------------------------------------------
-
-valid_dates = df["business_date"].dropna()
-
-if not valid_dates.empty:
-
-    min_date = valid_dates.min().date()
-    max_date = valid_dates.max().date()
-
-    date_range = st.sidebar.date_input(
-        "Business Date Range",
-        value=[
-            min_date,
-            max_date
-        ],
-        min_value=min_date,
-        max_value=max_date
-    )
-
-else:
-
-    st.sidebar.warning(
-        "No valid Business Date found."
-    )
-
-    date_range = []
-
-
-# ------------------------------------------------------------
-# MEMBER ID
-# ------------------------------------------------------------
+date_range = st.sidebar.date_input(
+    "Business Date Range",
+    value=[
+        df["business_date"].min().date(),
+        df["business_date"].max().date()
+    ]
+)
 
 selected_ids = st.sidebar.multiselect(
     "Select Member ID",
@@ -262,33 +171,18 @@ selected_ids = st.sidebar.multiselect(
 )
 
 
-# ============================================================
-# FILTER
-# ============================================================
+# ================= FILTER =================
 
 filtered_df = df.copy()
 
-
-# ------------------------------------------------------------
-# BUSINESS DATE FILTER
-# ------------------------------------------------------------
-
 if len(date_range) == 2:
 
-    start = pd.Timestamp(
-        date_range[0]
-    )
-
-    end = pd.Timestamp(
-        date_range[1]
-    )
+    start = pd.Timestamp(date_range[0])
+    end = pd.Timestamp(date_range[1])
 
     filtered_df = filtered_df[
         (
-            filtered_df["business_date"].between(
-                start,
-                end
-            )
+            filtered_df["business_date"].between(start, end)
         )
         |
         (
@@ -296,79 +190,37 @@ if len(date_range) == 2:
         )
     ]
 
-
-# ------------------------------------------------------------
-# MEMBER ID FILTER
-# ------------------------------------------------------------
-
+# Member ID filter
 if selected_ids:
 
     filtered_df = filtered_df[
-        filtered_df["id"].isin(
-            selected_ids
-        )
+        filtered_df["id"].isin(selected_ids)
     ]
-
-
-# ============================================================
-# SELECTED BUSINESS DATE DISPLAY
-# ============================================================
-
-if len(date_range) == 2:
-
-    start_display = date_range[0].strftime(
-        "%Y-%m-%d"
-    )
-
-    end_display = date_range[1].strftime(
-        "%Y-%m-%d"
-    )
-
-    st.markdown(
-        f"""
-        <div class="business-date-box">
-
-            <div class="business-date-label">
-                BUSINESS DATE
-            </div>
-
-            <div class="business-date-value">
-                {start_display}
-                &nbsp;&nbsp; → &nbsp;&nbsp;
-                {end_display}
-            </div>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-# ============================================================
-# MEMBER SUMMARY
-# ============================================================
+# ================= MEMBER SUMMARY =================
 
 member_summary = filtered_df.groupby(
-    ["id", "Name"],
+    ["id","Name"],
     as_index=False
 ).agg(
 
-    EGSA2026_27_monthly_payment=(
+    EGSA2026_27_monthly_payment=
+    (
         "EGSA2026_27_monthly_payment",
         "sum"
     ),
 
-    End_2026_achievement=(
+    End_2026_achievement=
+    (
         "End_2026_achievement",
         "max"
     ),
-
-    EGSA2027_Half_Year_plan=(
+    EGSA2027_Half_Year_plan=
+    (
         "EGSA2027_Half_Year_plan",
         "sum"
     ),
-
-    EGSA2027_Half_Year_achievement=(
+    EGSA2027_Half_Year_achievement=
+    (
         "EGSA2027_Half_Year_achievement",
         "sum"
     )
@@ -376,31 +228,24 @@ member_summary = filtered_df.groupby(
 )
 
 
-# ============================================================
-# MEMBER ID FILTER ON SUMMARY
-# ============================================================
 
 if selected_ids:
 
     member_summary = member_summary[
-        member_summary["id"].isin(
-            selected_ids
-        )
+        member_summary["id"].isin(selected_ids)
     ]
 
 
-# ============================================================
-# REPORT
-# ============================================================
 
-st.markdown(
-    """
-    <div class="report-box">
-        <h3>Member Payment Report</h3>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# ================= REPORT =================
+
+st.markdown("""
+<div class="report-box">
+<h3>Member Payment Report</h3>
+</div>
+""",
+unsafe_allow_html=True)
+
 
 
 st.dataframe(
@@ -417,235 +262,161 @@ st.dataframe(
     ],
 
     use_container_width=True,
-
     hide_index=True
 )
 
 
-# ============================================================
-# SUMMARY
-# ============================================================
 
-st.markdown(
-    """
-    <div class="summary-box">
-        <h3>Summary</h3>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# ================= SUMMARY =================
+
+st.markdown("""
+<div class="summary-box">
+<h3>Summary</h3>
+</div>
+""",
+unsafe_allow_html=True)
 
 
-# ============================================================
-# SUMMARY CALCULATIONS
-# ============================================================
 
 TOTAL_MEMBERS = df["id"].nunique()
 
 MONTHLY_TARGET = 1000
 
 
-# Monthly Payment Total
 
 total_monthly_payment = (
-    member_summary[
-        "EGSA2026_27_monthly_payment"
-    ].sum()
+    member_summary["EGSA2026_27_monthly_payment"].sum()
 )
 
-
-# End 2026 Achievement
 
 total_achievement = (
-    member_summary[
-        "End_2026_achievement"
-    ].sum()
+    member_summary["End_2026_achievement"].sum()
 )
-
-
-# Half Year Plan
 
 total_half_plan = (
-    member_summary[
-        "EGSA2027_Half_Year_plan"
-    ].sum()
-    + 168000
+    member_summary["EGSA2027_Half_Year_plan"].sum()+168000
 )
-
-
-# Half Year Achievement
 
 total_half_achieved = (
-    member_summary[
-        "EGSA2027_Half_Year_achievement"
-    ].sum()
-    + total_monthly_payment
+    member_summary["EGSA2027_Half_Year_achievement"].sum()+total_monthly_payment
 )
-
-
-# Total Collected
 
 total_collected = (
-    total_achievement
-    + total_half_achieved
+    
+    total_achievement+total_half_achieved
 )
 
 
-# ============================================================
-# EXPECTED MONTHLY
-# ============================================================
 
 expected_amount = (
     TOTAL_MEMBERS
-    * MONTHLY_TARGET
+    *
+    MONTHLY_TARGET
 )
 
 
-# ============================================================
-# OUTSTANDING
-# ============================================================
 
 outstanding_amount = (
     expected_amount
-    - total_monthly_payment
+    -
+    total_monthly_payment
 )
 
 
-# ============================================================
-# PAID MEMBERS
-# ============================================================
 
 paid_members = member_summary[
-    member_summary[
-        "EGSA2026_27_monthly_payment"
-    ] > 0
+    member_summary["EGSA2026_27_monthly_payment"] > 0
 ].shape[0]
 
 
-# ============================================================
-# UNPAID MEMBERS
-# ============================================================
 
 unpaid_members = (
     TOTAL_MEMBERS
-    - paid_members
+    -
+    paid_members
 )
 
 
-# ============================================================
-# METRICS - ROW 1
-# ============================================================
+
+# ================= METRICS =================
 
 col1, col2, col3, col4 = st.columns(4)
 
-
 with col1:
-
     st.metric(
         "Monthly Payment Total",
         f"{total_monthly_payment:,.2f}"
     )
 
-
 with col2:
-
     st.metric(
         "Expected Monthly",
         f"{expected_amount:,.2f}"
     )
 
-
 with col3:
-
     st.metric(
         "Outstanding Monthly",
         f"{outstanding_amount:,.2f}"
     )
 
-
 with col4:
-
     st.metric(
         "Paid Members",
         paid_members
     )
 
 
-# ============================================================
-# METRICS - ROW 2
-# ============================================================
-
 col5, col6, col7, col8 = st.columns(4)
 
-
 with col5:
-
     st.metric(
         "End 2026 Achievement",
         f"{total_achievement:,.2f}"
     )
 
-
 with col6:
-
     st.metric(
         "EGSA2027_Half_Year_plan",
         f"{total_half_plan:,.2f}"
     )
 
-
 with col7:
-
     st.metric(
         "EGSA2027_Half_Year_achievement",
         f"{total_half_achieved:,.2f}"
     )
 
-
 with col8:
-
     st.metric(
         "Unpaid Members",
         unpaid_members
     )
 
 
-# ============================================================
-# TOTAL COLLECTED
-# ============================================================
-
 col9 = st.columns(1)[0]
 
-
 with col9:
-
     st.metric(
         "Total Collected",
         f"{total_collected:,.2f}"
     )
 
+# ================= UNPAID LIST =================
 
-# ============================================================
-# UNPAID LIST
-# ============================================================
+st.markdown("""
+<div class="report-box">
+<h3>Members Who Did Not Pay Monthly Contribution</h3>
+</div>
+""",
+unsafe_allow_html=True)
 
-st.markdown(
-    """
-    <div class="report-box">
-        <h3>
-            Members Who Did Not Pay Monthly Contribution
-        </h3>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 
 
 unpaid_df = member_summary[
-    member_summary[
-        "EGSA2026_27_monthly_payment"
-    ] == 0
+    member_summary["EGSA2026_27_monthly_payment"] == 0
 ]
+
 
 
 st.dataframe(
@@ -658,6 +429,5 @@ st.dataframe(
     ],
 
     use_container_width=True,
-
     hide_index=True
 )
