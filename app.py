@@ -205,13 +205,6 @@ selected_ids = st.sidebar.multiselect(
     "Select Member ID",
     sorted(df["id"].unique())
 )
-
-# Member ID filter
-if selected_ids:
-
-    filtered_df = filtered_df[
-        filtered_df["id"].isin(selected_ids)
-    ]
 # ================= MEMBER SUMMARY =================
 
 member_summary = filtered_df.groupby(
