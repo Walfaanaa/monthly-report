@@ -537,13 +537,23 @@ st.markdown(
 )
 
 
-unpaid_df = member_summary[
-    member_summary[
-        "EGSA2026_27_monthly_payment"
-    ] == 0
+# Calculate payment by member across the selected date range
+unpaid_df = (
+    filtered_df.groupby(
+        ["id", "Name"],
+        as_index=False
+    )["EGSA2026_27_monthly_payment"]
+    .sum()
+)
+
+
+# Keep only members with no payment
+unpaid_df = unpaid_df[
+    unpaid_df["EGSA2026_27_monthly_payment"] == 0
 ]
 
 
+# Display only ID and Name
 st.dataframe(
     unpaid_df[
         [
