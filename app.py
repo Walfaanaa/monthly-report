@@ -155,6 +155,22 @@ def load_data():
 df = load_data()
 # ================= SIDEBAR =================
 
+st.markdown("""
+<style>
+/* Make date input text blue */
+[data-testid="stDateInput"] input {
+    color: blue !important;
+    font-weight: 600;
+}
+
+/* Make the date input label blue */
+[data-testid="stDateInput"] label {
+    color: blue !important;
+    font-weight: 600;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.sidebar.header("Filters")
 
 date_range = st.sidebar.date_input(
