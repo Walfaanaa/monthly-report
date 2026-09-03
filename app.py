@@ -153,23 +153,43 @@ def load_data():
 
 
 df = load_data()
-# ================= SIDEBAR =================
+# ================= SIDEBAR STYLE =================
 
 st.markdown("""
 <style>
-/* Make date input text blue */
-[data-testid="stDateInput"] input {
-    color: blue !important;
-    font-weight: 600;
+
+/* Sidebar date input label */
+section[data-testid="stSidebar"] 
+[data-testid="stDateInput"] label {
+    color: #0066CC !important;
+    font-weight: 600 !important;
 }
 
-/* Make the date input label blue */
-[data-testid="stDateInput"] label {
-    color: blue !important;
-    font-weight: 600;
+/* Sidebar date input displayed value */
+section[data-testid="stSidebar"] 
+[data-testid="stDateInput"] input {
+    color: #0066CC !important;
+    -webkit-text-fill-color: #0066CC !important;
+    font-weight: 600 !important;
 }
+
+/* Sidebar date input text */
+section[data-testid="stSidebar"] 
+[data-testid="stDateInput"] input::placeholder {
+    color: #0066CC !important;
+}
+
+/* Sidebar date input container */
+section[data-testid="stSidebar"] 
+[data-testid="stDateInput"] {
+    color: #0066CC !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
+
+
+# ================= SIDEBAR =================
 
 st.sidebar.header("Filters")
 
@@ -185,26 +205,6 @@ selected_ids = st.sidebar.multiselect(
     "Select Member ID",
     sorted(df["id"].unique())
 )
-
-
-# ================= FILTER =================
-
-filtered_df = df.copy()
-
-if len(date_range) == 2:
-
-    start = pd.Timestamp(date_range[0])
-    end = pd.Timestamp(date_range[1])
-
-    filtered_df = filtered_df[
-        (
-            filtered_df["business_date"].between(start, end)
-        )
-        |
-        (
-            filtered_df["business_date"].isna()
-        )
-    ]
 
 # Member ID filter
 if selected_ids:
