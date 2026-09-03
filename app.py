@@ -290,7 +290,7 @@ if selected_ids:
 # ================= MEMBER SUMMARY =================
 
 member_summary = filtered_df.groupby(
-    ["id", "Name"],
+    ["business_date", "id", "Name"],
     as_index=False
 ).agg(
 
